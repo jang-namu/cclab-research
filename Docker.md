@@ -25,6 +25,14 @@
     * [4.2 Docker 컨테이너](#2-docker-컨테이너)
     * [4.3 Docker 컨테이너 네트워크](#3-docker-컨테이너-네트워크)
     * [4.4 가동중인 컨테이너 조작](#4-가동중인-docker-컨테이너-조작)
+    * [4.5 Docker 이미지 생성](#5-docker-이미지-생성)
+* [5장. Dockerfile, Config as code](#5장-dockerfile-config-as-code)
+    * [5.1 Dockerfile 구성 관리](#1-dockerfile-구성-관리)
+    * [5.2 Dockerfile 빌드, 이미지 레이어](#2-dockerfile-빌드-이미지-레이어)
+    * [5.3 Docker 이미지 레이어](#3docker-이미지-레이어)
+    * [5.4 멀티스테이지 빌드를 사용한 개발](#4-멀티스테이지-빌드를-사용한-개발)
+    * [5.5 환경 및 네트워크 설정](#5-환경-및-네트워크-설정)
+    * [5.6 파일 설정](#6-파일-설정)
 
 
     
@@ -402,6 +410,16 @@ Docker는 Linux Container를 사용한다. 초기에는 LXC(Linux Container)를 
     sudo apt-get update
     ```
 
+<br>
+
+### Docker 일반 사용자 권한
+Docker 명령은 항상 root 권한 'sudo' 필요  
+'sudo' 없이 실행하려면, docker 그룹에 일반사용자 추가
+![docker 그룹에 일반사용자 추가](./rsc/img/add_user_docker_group.png)
+![docker service 재시작](./rsc/img/service_docker_restart.png)
+
+<br>
+
 ### Docker 설치하기
 * Docker 커뮤니티 에디션(ce)을 다운받는다. 설치가 끝나면 자동으로 docker가 시작된다.
     ```bash
@@ -493,6 +511,8 @@ Docker는 Linux Container를 사용한다. 초기에는 LXC(Linux Container)를 
     ```bash
     docker start webserver
     ```
+
+<br><br>
 
 # 4장. Docker 실습
 
@@ -896,7 +916,7 @@ Docker는 Linux Container를 사용한다. 초기에는 LXC(Linux Container)를 
     ![container pause](./rsc/img/containerPause.png)
     * ls 명령으로 확인 시 STATUS가 (Paused)로 되어있음을 확인할 수 있다.
 
----
+<br>
 
 ## 3. Docker 컨테이너 네트워크
 * Docker 컨테이너 간 통신은 Docker 네트워크를 통해 수행한다.
@@ -975,8 +995,882 @@ Docker는 Linux Container를 사용한다. 초기에는 LXC(Linux Container)를 
     docker network rm web-network
     ```
 
+<br>
+
 ## 4. 가동중인 Docker 컨테이너 조작
+__컨테이너 연결__
+```bash
+# ctrl + c : 종료 | ctrl + p -> ctrl + q (순서대로) : 컨테이너를 종료하지 않고 분리(빠져나옴)
+docker container attach sample
+```  
+![docker container attach sample](./rsc/img/attach_sample.png)
+![docker container attach separate](./rsc/img/attach_separate.png)
+
+__컨테이너 내 프로세스 실행__
+```bash
+# docker container exec [옵션] <컨테이너 식별자> <실행할 명령> [인수]
+# -d, -i, -t, -u(사용자명을 지정)
+docker container -it webserver /bin/bash
+# webserver라는 이름으로 가동중인 컨테이너에 /bin/bash를 실행
+```
+![container exec](./rsc/img/container_exec.png)
+
+__컨테이너 프로세스 확인__
+```bash
+docker container top
+```
+![container top webserver](./rsc/img/container_top.png)
+
+__프로세스가 전송되고 있는 포트 확인__
+```bash
+docker container port
+```
+![container port webserver](./rsc/img/container_port.png)
+
+__컨테이너 이름 변경__
+```bash
+# docker cotainer rename [old_name] [new_name] 
+docker container rename webserver myserver
+```
+![container rename](./rsc/img/container_rename.png)
 
 
+__컨테이너 안의 파일 복사__
+```bash
+# docker container cp <컨테이너 식별자>:<컨테이너 안의 파일 경로> <호스트의 디렉토리 경로>
+# docker container cp <호스트의 파일> <컨테이너 식별자>:<컨테이너 안의 파일 경로>
+```
+![container cp](./rsc/img/container_cp.png "컨테이너 -> 호스트")
+
+![container cp host to container](./rsc/img/container_cp_host.png "호스트 -> 컨테이너")
 
 
+__컨테이너 조작 차분 확인__  
+>차분: 달라진 점 (컨테이너가 이미지로부터 생성되었을 때와 달라진 점)
+```bash
+# docekr container diff <컨테이너 식별자>
+# A: 파일추가, D: 파일 삭제, C: 파일 수정
+```
+![container create and create user](./rsc/img/container_diff_pre.png)
+<img src="./rsc/img/container_diff.png" width="50%"/>
+
+<br>
+
+## 5. Docker 이미지 생성
+__컨테이너로 이미지 작성__
+```bash
+# docker container coomit [옵션] <컨테이너 식별자> [이미지명[:태그명]]
+# -a (author), -m (메시지), -c (커밋 시 Dockerfile 명령을 지정), -p (컨테이너를 일시 정지하고 커밋)
+docker container commit -a "jang-namu" myserver namu/nginx : 1.0
+```
+![container commit](./rsc/img/container_commit.png)
+
+* 이미지 정보를 확인한다
+    ```bash
+    docker image inspect namu/nginx:1.0
+    ```
+    ![image inspect](./rsc/img/image_inspect.png)
+  
+
+
+__컨테이너를 tar 파일로 출력__
+```bash
+# docker container export <컨테이너 식별자>
+docker container export myserver > latest.tar
+```
+![container export](./rsc/img/container_export.png)
+* tar파일 내용 확인
+![tar -tf](./rsc/img/container_export_tar.png)
+
+
+__tar파일로 이미지 작성__  
+Linux OS 이미지의 디렉토리/파일로부터 Docker 이미지를 만듬  
+하나의 파일만 지정 가능 -> tar 형태로 파일을 하나로 모아두고 사용
+
+```bash
+# docker image import <파일 또는 URL> | - [이미지명[:태그명]
+# test.tar로 모아놓은 디렉토리/파일을 바탕으로 이미지 작성.
+cat test.tar | docker image import - namu/nginx:1.0
+```
+![image import](./rsc/img/image_import.png)
+
+__이미지 저장, 로드__  
+* Docker 이미지를 tar 파일로 저장
+```bash
+# docker image save [옵션] <저장 파일명> [이미지명]
+# -o : 저장되는 파일명 지정
+docker image save -o exported.tar tensorflow
+```
+![image save](./rsc/img/image_save.png)
+
+* tar파일로부터 이미지
+```bash
+# docke image load [옵션]
+# -i : 읽어 들일 파일명 지정
+docker image load -i exported.tar
+```
+
+<br>
+
+### export/import vs save/load
+* export: 컨테이너 작동에 필요한 파일을 모두 압축 아카이브로 모음, 루트 파일 시스템 그대로 추출
+    * 메타정보가 저장되지 않음
+* save : 이미지의 레이어 구조도 포함된 형태로 압축 아카이브로 모음.
+
+__불필요한 이미지/컨테이너 일괄 삭제__
+```bash
+# docker system prune [옵션]
+# -a (사용하지 않는 리소스 모두), -f (강제)
+```
+![system prune](./rsc/img/system_prune.png)
+
+<br><br>
+
+# 5장. Dockerfile, Config as code
+Dockerfile: Docker의 인프라 구성 관리 파일  
+베이스 이미지 위에, 미들웨어 설치/설정과 애플리케이션 실행 모듈 전개를 위한 모든 구성정보 기술
+
+## 1. Dockerfile 구성 관리
+Dockerfile: 베이스 이미지, 환경변수, 데몬 실행 정보, 미들웨어나 OS 설치/설정 등 컨테이너 구성정보를 기술, 자동화
+* 'docker build' 명령은 docerfile에 기술된 내용을 바탕으로 Docker 이미지 작성
+![dockerfile을 이용한 구성관리](./rsc/img/dockerfile_intro.png)
+
+### Dockerfile의 기본 구문
+
+|명령|설명|명령|설명|
+|---|---|---|---|
+|FROM|베이스 이미지 지정|VOLUME|볼륨 마운트
+|RUN|명령 실행|USER|사용자 지정
+|CMD|컨테이너 실행 명령|WORKDIR|작업 디렉토리
+|LABEL|라벨성정|ARG|Dockerfile 안의 변수
+|EXPOSE|포트 익스포트|ONBUILD|빌드 완료 후 실행되는 명령
+|ENV|환경변수|STOPSIGNAL|시스템 콜 시그널 설정
+|ADD|파일/디렉토리 추가|HEALTHCHECK|컨테이너의 헬스 체크
+|COPY|파일 복사|SHELL|기본 쉘 설정
+|ENTRYPOINT|컨테이너 실행 명령|||
+
+* RUN: 이미지 빌드 시 실행
+* CMD, ENTRYPOINT: 컨테이너 실행 시 실행할 명령어, 인수를 지정
+    * CMD: 런타임(docker run ~)에 다른 명령, 인수를 지정할 수 있다. 이 경우 기본 명령은 무시된다. 
+    * ENTRYPOINT: 런타임에 전달된 인수와 관계없이 컨테이너가 시작될 때 항상 실행할 명령을 지정
+* Dockerifle에 여러개의 CMD, 또는 여러개의 ENTRYPOINT가 존재하면 마지막 하나만 인정된다.
+* CMD와 ENTRYPOINT가 같이 사용되면 CMD는 ENTRYPOINT에 지정된 명령에 기본 인수를 제공하는 역할.
+
+```bash
+# Dockerfile
+FROM alpine
+ENTRYPOINT ["echo", "Hello"]
+CMD ["World"]
+```
+
+```bash
+docker run [image_name] # 출력: Hello World
+docker run [image_name] Jang # 출력: Hello Jang
+```
+
+<br>
+
+### __Docker 빌드__
+Docker는 빌드 시, Dockerfile을 포함하는 디렉토리와 그 아래 모든 파일/디렉토리를 Docker 데몬에 전송한다.  
+되도록 빈 디렉토리를 만들어 Dockerfile을 두고 빌드하도록 하며,  
+빌드에 불필요한 파일은 .dockerignore라는 이름의 파일안에 기술한다.
+
+<br>
+
+```
+# 주석은 '#'으로 작성합니다.
+[명령] [인수] # 다음과 같은 형태로 내용을 작성합니다.
+```
+* Dockerfile에는 __베이스 이미지를 필수적으로 기술__
+```
+# 베이스 이미지 설정
+FROM [이미지명]
+FROM [이미지명]:[태그명]
+FROM [이미지명]@[다이제스트]
+FROM centos:centos7     # 예제, 태그명 생략 시 latest 적용
+```
+* 다이제스트: Docker Hub에 이미지 업로드와 동시에 자동으로 부여되는 식별자.
+![image digests](./rsc/img/image_digests.png)
+    >__Dockerfile에서 이미지를 지정할 때, '[이미지명]@[다이제스트]'로 작성__
+
+<br>
+
+## 2. Dockerfile 빌드, 이미지 레이어
+Docherfile 빌드: Dockerfile 내용을 바탕으로 한 Docker 이미지 작성
+
+__Dockerfile 빌드해서 이미지 만들기__
+```bash
+# docker build -t [생성할 이미지명]:[태그명] [Dockerfile의 위치]
+# docker build -t [생성할 이미지명]:[태그명] -f [Dockerfile 파일명] [Dockerfile의 위치]
+# -t : tag
+```
+
+```bash
+# Dockerfile 내용, 위치=/home/docker/test
+FROM centos:centos7
+```
+
+* 베이스 이미지만 지정한 Dockerfile로부터 sample이라는 이미지를 작성한다.
+```bash
+docker buuld -t sample:1.0 /home/docker/test
+```
+![docker build](./rsc/img/docker_build.png)
+* 로컬에 없으면 원격 Docker Repository에서 다운로드
+* sample 1.0, 1.1 이미지: 베이스이미지 centos7을 기반으로 생성
+* 1.0, 1.1, centos:centos7 이미지 ID가 모두 같음.
+* __이미지로서는 각기 다른 이름이 붙었지만 그 실체는 모두 동일한 이미지를 나타냄__
+![builded image, base image id](./rsc/img/build_image_id.png)
+<img src="./rsc/img/they_are_same.png" width="60%"/>
+
+<br>
+
+__Dockerfile.base라는 이름의 파일을 Dockerfile로 지정 후 build__
+```bash
+# 현재 디렉토리 위치 
+docker build -t sample -f Dockerfile.base ./test 
+```
+
+![docker build from other name dockerfile](./rsc/img/build_from_other_name_dockerfile.png)
+
+<br>
+
+__표준 입력을 통한 빌드__
+```bash
+# '-'은 Dockerfile의 '내용'을 'docker build' 명령의 '인수'로 전달하기 위함
+docker build - < Dockerfile
+```
+* 이 방법은 빌드에 필요한 파일을 포함시킬 수 없음 -> 하나의 아카이브로 모아 사용
+1. 더미파일과 Dockerfile을 하나의 tar로 모음
+![tar dockerfile and dummy](./rsc/img/tar_dockerfile.png)
+
+2. tar 내용 확인 후, 표준 입력을 통해 build
+![docker build through stdin](./rsc/img/docker_build_stdin.png)
+
+> Docker는 이미지 빌드 시, 자동으로 중간 이미지 생성  
+> 다른 이미지 빌드 시, 내부적으로 중간 이미지 재이용 -> 빌드 속도 향상
+
+<br>
+
+### Docker 이미지 레이어 구조
+---
+Dockerfile을 빌드하여 Docker 이미지 작성 시, Dockerfile의 명령별로 이미지를 작성한다.  
+작성된 여러 개의 이미지는 레이어 구조로 되어있다.  
+
+* Dockerfile
+```bash
+# Dockerfile 
+# Step 1: Ubuntu (베이스 이미지)
+FROM ubuntu:latest
+
+# Step 2: Nginx 설치
+RUN apt-get update && apt-get install -y -q nginx
+
+# Step 3: 파일 복사
+COPY index.html /usr/share/nginx/html/
+
+# Step 4: Nginx 시작
+CMD ["nginx", "-g", "daemon off;"]
+```
+* 위 Dockerfile을 이용해 build
+![Dockerfile build 이미지 레이어](./rsc/img/docker_build_image_layer.png)
+* image inspect 확인 결과, 3개의 layer 존재 (CMD 명령을 제외한 3개 이미지 생성)
+![이미지 레이어 생성 확인](./rsc/img/inspect_image_layer.png)
+
+## 3.Docker 이미지 레이어
+docker는 이미지를 레이어로 분리해서 관리한다.  
+이를 통해 이미지의 공통 부분을 공유하고 저장공간을 효율적으로 활용, 빌드 시간 감소 등의 이점을 갖는다.  
+Dockerfile을 이용한 빌드 시에는 명령 단위로 이미지가 생성된다.
+이미 빌드한 Dockerfile을 가지고 다시 빌드할 때는, 캐싱돼있는 이미지 레이어를 사용한다.  
+캐싱된 이미지 레이어를 사용한다는 것은 하나의 실체 이미지를 공유한다는 의미이다.
+* 같은 Dockerfile을 가지고 다시 한 번 빌드. 이전에 만든 이미지를 가져다 사용
+![build 재시도](./rsc/img/cached_build.png)
+![Dockerfile, docker image layer](./rsc/img/docker_image_layer.png "https://kimjingo.tistory.com/62")
+
+<br>
+
+### 효율적인 Dockerfile 작성
+---
+>Dockerfile을 통해 이미지를 만들 때 변화가 없는 레이어는 재사용한다.  
+다만, 변경이 일어난 명령어부터는 모두 재실행된다.  
+즉, 효율적인 Dockerfile을 작성하기 위해서는 무겁고 변경이 필요없는 명령일수록  앞에 배치하는 것이 좋다.
+
+## 4. 멀티스테이지 빌드를 사용한 개발
+멀티스테이지 빌드: 애플리케이션 제품 환경에서 필요한 실행 바이너리만 이미지에 심어넣는 기능
+![실습 샘플 클론](./rsc/img/sample_clone.png)
+
+
+---
+__현재는 되지않는다__
+* 1. 개발환경용 build Image와 2. 제품환경용 Production Image 두 개의 이미지가 생성된다.
+![Dockerfile](./rsc/img/sample_dockerfile.png)
+1. Build Image
+    * Go 버전 1.8.4를 베이스 이미지로 작성하고 builder라는 별명을 붙임
+    * 개발에 필요한 버전을 설치하여 로컬 환경에 있는 소스코드를 컨테이너 안으로 복사한다.
+    * 이 소스코드를 go build 명령으로 빌드하여 'greet'라는 이름의 실행 가능 바이너리 파일을 작성한다.
+2. Production Image
+    * busybox를 베이스 이미지로 작성한다. 
+        * BusyBox: 기본적인 Linux 명령을 하나의 파일로 모아놓은 것. 최소한의 Linux 쉘 환경 제공
+    * 앞에서 빌드한 'greet' 바이너리 파일을 제품환경용 Docker 이미지로 복사한다.
+        * 이 때 --from 옵션으로 'builder'라는 이름의 이미지로부터 복사함을 선언한다.
+    * 마지막으로 ENTRYPOINT로 바이너리를 실행하는 명령을 적는다.
+```bash
+docker build -t greet . 
+# 인자를 받아서, 인사를 출력하는 간단한 프로그램
+docker container run -it --rm greet asa # hello asa
+docker container run -it --rm greet --lang=es asa   # holla asa
+```
+---
+
+### 명령 및 데몬 실행
+Dockerfile에서 명령이나 데몬을 실행하는 방법
+
+### 명령 실행
+RUN은 Dockerfile에 여러 개 기술할 수 있음. but __명령 한줄마다 이미지 생성됨.__
+```bash
+# RUN [실행하고 싶은 명령]
+# shell 형식으로 기술
+RUN apt-get install -y nginx
+
+# exec 형식으로 기술, 쉘을 경유하지 않고 직접 실행
+# 실행하고 싶은 명령을 JSON 배열로 지정, 쉘 이용하고 싶을 경우 지정해서 사용
+# 문자열 인수는 ''로 감싼다.
+RUN ["/bin/bash", "-c", "apt-get install -y nignx"]
+```
+![dockerfile run example](./rsc/img/dockerfile_run_example.png)
+![run image history](./rsc/img/run_image_history.png)
+* /bin/sh를 경유하여 명령을 실행하고 싶을 때는 Shell 형식으로, 그 외의 경우 Exec 형식으로 기술하는 것이 좋다.
+
+* 이렇게 작성하자
+```bash
+# 변경 전
+RUN yum -y install httpd\
+RUN yum -y install php\
+RUN yum -y install php-pear\
+
+# 변경 후, '\'로 줄바꿈을 넣을 수 있다.
+RUN yum -y install\
+           httpd\
+           php\
+           php-pear
+```
+
+### 데몬 실행, CMD/ENTRYPOINT
+__CMD__ 명령은 이미지를 바탕으로 생성된 컨테이너 안에서 명령 실행
+Dockerfile에는 마지막 CMD 명령 하나만 인식됨
+* ENTRYPOINT도 CMD와 문법, 사용목적은 같으나 container run 시 변경가능성의 차이 존재
+
+```bash
+# CMD [실행하고 싶은 명령]
+# Exec 형식 기술
+CMD ["nginx", "-g", "daemon off;"] # nginx를 포그라운드로 실행한다.
+
+# Shell 형식 기술
+CMD nginx -g 'daemon  off;'
+```
+* 예시
+```bash
+FROM ubuntu:16.04
+
+RUN apt-get -y update && apt-get -y upgrade
+RUN apt-get -y install nginx
+
+# 포트 지정, 내부포트만 지정했으므로 container run 시 외부포트와 매핑 필요
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+![CMD](./rsc/img/dockerfile_cmd_example.png)
+
+
+### 빌드 완료 후 실행되는 명령, ONBUILD
+그 다음 빌드에서 실행할 명령을 이미지 안에 설정하기 위함  
+즉, 현재 Dockerfile로 빌드한 이미지를, 베이스 이미지로 하여 또 다른 이미지를 빌드할 때 명령이 실행된다.
+![dockerfile onbuild](./rsc/img/dockerfile_onbuild.png "https://kimjingo.tistory.com/68")
+* 이미지에 설정된 ONBUILD 명령 확인
+```bash
+docker image inspect --format="{{ .Config.OnBuild }}" [이미지명]
+```
+
+### 시스템 콜 시그널 설정
+```bash
+# 컨테이너 종료 시 송신하는 시그널 설정
+STOPSIGNAL [시그널]
+```
+### 컨테이너 헬스 체크 
+컨테이너 상태를 어떻게 확인할지 설정, 헬스 체크 결과는 docker container inspect로 확인
+```bash
+# --interval=n, 헬스 체크 간격
+# --timeout=n, 헬스체크 타임아웃
+# --retries=N, 타임아웃 횟수
+HEALTHCHECK [옵션] [실행할 명령]
+
+# ex) 5분마다 가동중인 웹서서의 메인페이지를 3초안에 표시할수 있는지 확인
+HEALTHCHECK --interval=5m --timeout=3s CMD curl -f http://localhost/index.html || exit 1
+```
+
+<br>
+
+## 5. 환경 및 네트워크 설정
+
+### 환경변수 설정, ENV
+Dockerfile 안에서 이용할 수 있는 환경변수를 설정한다.  
+**명령별로 Docker 이미지를 만든다.**
+```bash
+# ENV [key] [value] 단일 환경변수에 하나의 값 설정, key 이후는 모두 하나의 문자열로 취급
+ENV order Gin Wishky Calvados # order = "Gin Wisky Calvados"
+# ENV [key]=[value] 한 번에 여러개의 환경변수 설정
+ENV order1=Gin
+    order2=Whisky
+    order3=Calvados
+```
+ENV로 지정한 환경변수는 컨테이너 실행 시, docker container run '--env' 옵션으로 변경 가능
+
+### 작업 디렉토리 지정, WORKDIR
+Dockerfile에서 정의한 명령을 실행하는 위치, 작업용 디렉토리를 지정한다  
+즉, __RUN, CMD, ENTRYPOINT, COPY, ADD 명령 실행을 위한 위치를 지정한다.__  
+__지정한 디렉토리가 존재하지 않으면 새로 만든다.__
+```bash
+# WORKDIR [작업 디렉토리 경로]
+ENV DIRPATH /first
+ENV DIRNAME second
+WORKDIR $DIRPATH/$DIRNAME
+RUN ["pwd"] # /first/second
+```
+
+### 사용자 지정, USER
+이미지 실행이나 Dockerfile의 RUN, CMD, ENTRYPOINT 명령을 실행하기 위한 사용자 지정
+미리 RUN 명령을 통해 유저를 작성해놓아야 함.
+```bash
+# USER [사용자명/UID]
+RUN ["adduser", "namu"]
+RUN ["whoami"]  # root
+USER namu
+RUN ["whoami"]  # namu
+```
+
+### 라벨지정, LABEL
+이미지에 버전, 작성자 정보, 코멘트를 제공
+```bash
+# LABEL <키 명>=<값>
+LABEL maintainer "jang namu<namu@example.com>"
+LABEL title="myApp"
+LABEL version="1.0.0"
+LABEL description="This image is jang-namu myApp"
+```
+
+### 포트 설정, EXPOSE
+컨테이너의 공개 포트번호를 지정, Docker에게 실행 중인 컨테이너가 listen하고 있는 네트워크를 알림  
+docker container run 명령의 '-p'옵션을 통해 어떤 포트를 호스트에 공개할지 정의.
+```bash
+# EXPOSE <포트 번호>
+```
+
+### Dockerfile 내 변수 설정, ARG
+Dockerfile 안에서 사용할 변수 정의, 변수의 값에 따라 생성되는 이미지 내용을 변경하고 싶은 경우  
+```bash
+# ARG <이름>[=기본값]
+ARG MYNAME="namu"
+RUN echo $MYNAME
+```
+docker build 시 '--build-arg' 옵션으로 같은 이름의 변수를 생성하면 Dockerfile에 작성한 내용은 무시함
+
+### 기본 쉘 설정, SHELL
+쉘 형식 지정, 리눅스 기본 쉘: ["/bin/sh", "-c"]
+```bash
+#SHELL ["쉘의 경로", "파라미터"]
+# 기본 쉘을 bash로 지정
+SHELL ["/bin/bash", "-c"]
+RUN echo hello  # bash 쉘에서 echo 실행
+```
+
+<br>
+
+## 6. 파일 설정
+
+### 파일 및 디렉토리 추가, ADD
+호스트상의 파일이나 디렉토리, 원격 파일을 Docker 이미지 안으로 복사
+```bash
+# ADD <호스트의 파일 경로> <Docker 이미지 파일 경로>
+# ADD ["<호스트의 파일 경로>" "<Docker 이미지 파일 경로">"]
+
+# 와일드카드 사용, Go언어의 파일 경로 Match 룰 적용 가능
+# 호스트상의 host.html을 이미지 안이 /docker_dir/ 에 추가
+ADD host.html /docker_dir/
+
+# [hos]로 시작하는 모든 파일 추가
+ADD hos* /docker_dir/
+
+# [hos] + 임의의 한 문자에 해당하는 파일 추가
+ADD hos?.txt /docker_dir/
+```
+* 원격 파일을 추가할 경우 권한은 600으로 설정됨
+* 인증을 지원하지 않기 때문에, 다운로드에 인증이 필요한 경우 RUN 명령에서 wet이나 curl 이용
+* 호스트에서 가져온 파일이 tar나 여타 압축포맷일 때는 디렉토리로 압축해제
+* 원격 URL로부터 다운로드한 리소스는 자동으로 압축이 풀리지 않는다.
+
+
+### 파일 복사, COPY
+호스트상의 파일이나 디렉토리를 이미지에 복사  
+* ADD는 원격파일의 다운로드, 아카이브의 압축해제 등과 같은 기능 포함
+* COPY는 호스트상의 파일을 이미지 안으로 단순 복사
+```bash
+# COPY <호스트 파일 경로> <Docker 이미지의 파일 경로>
+# COPY ["<호스트 파일 경로>" "<Docker 이미지의 파일 경로>"]
+
+```
+
+### 볼륨 마운트, VOLUME
+이미지에 볼륨을 할당.
+지정한 이름의 마운트 포인트를 작성하고 호스트나 그 외 다른 컨테이너로부터 볼륨의 외부 마운트를 수행  
+
+```bash
+# VOLUME ["/마운트 포인트"]
+VOLUME ["/var/log/"]    # JSON 배열
+VOLUME /var/log 
+VOLUME /var/log /var/db # 여러 개
+```
+* 컨테이너는 영구 데이터 저장에 적합하지 않음.
+* 영구 데이터는 컨테이너 밖 스토리지에 저장하는 것을 선호.
+* Docker의 호스트 머신상 볼륨이나 공유 스토리지를 볼륨으로 마운트해서 저장.
+
+<br><br>
+
+# 6장. Docker 이미지 공개
+
+## 1. Docker 이미지 자동 생성 및 공개
+Dockerfile을 GitHub등에서 관리  
+Docker Hub와 연결하면 Dockerfile로부터 자동으로 이미지를 생성하고 공개할 수 있다.
+
+#### Automated Build flow -> docker hub pro 부터 사용 가능
+Automated Build: Docker Hub에서 지원하는 기능으로, GitHub와 연동하여 Dockerfile로부터 이미지를 자동으로 생성한다.
+
+## 2. Docker Registry로 프라이빗 레지스트리 구축
+Docker 이미지를 일원 관리하기 위한 로컬 레지스트리를 구축한다.
+
+### 로컬 환경에 Docker Registry 구축하기
+Docker Hub에 공개되어 있는 공식이미지 'registry'를 사용.
+* version 0 = python으로 작성
+* version 2 = Go언어로 작성 (추천)
+
+![docker registry 이미지 다운로드](./rsc/img/pull_registry_image.png)
+![registry 이미지로부터 컨테이너 생성/실행](./rsc/img/container_run_registry_image.png)
+```bash
+# 프라이빗 네트워크 안의 Docker 레지스트리에 업로드할 이미지는 다음 규칙을 통해 태그를 붙여야한다.
+# docker image tag [로컬의 이미지명] [업로드할 레지스트리 주소:포트번호]/[이미지명]
+docker image tag ubuntu localhost:5000/namu-ubuntu
+```
+![업로드할 이미지 태그 규칙](./rsc/img/image_tag_rule.png)
+![이미지 삭제](./rsc/img/rm_original_image.png)
+![로컬 레지스트리에서 이미지 pull](./rsc/img/image_pull_from_local_registry.png)
+>프라이빗 레지스트리에서 Docker 이미지를 영구 데이터로 관리하여야 한다.  
+이는 호스트 머신에 볼륨을 공유함으로써 달성할 수 있다.  
+하지만, 이 데이터를 관리하려면 신뢰성이 높고 충분한 스토리지가 마련되어야하며,  
+장애애 대비해 다중화 구성이나 백업, 서버감시 등과 같은 운용에 대해서도 검토할 필요가 있다.
+
+
+* 이 외에도 GCP에서 제공하는 GCR, Google Container Registry도 존재한다.
+* GCR은 GCP의 오브젝트 스토리지 서비스인 Google Cloud Storage를 데이터 스토리지로 사용한다.
+
+<br><br>
+
+# 7장. 여러 컨테이너의 운용 관리
+실제 제품환경에서는 애플리케이션 서버, 로그 서버, 프록시 서버 등과 같이 여러 개의 컨테이너들을 연계하여 작동시킨다.  
+여기서는 여러 컨테이너의 운용관리에 대해 설명한다.
+
+## 1. 개요 - 여러 컨테이너 관리
+### 웹 3 계층 시스템 아키텍처
+웹 시스템의 서버들을 역할별로 3 계층 분리
+1. 웹(프론트) 서버: 클라이언트의 HTTP 요청을 받아 응답을 반환하는 서버. Apache Nginx
+    * 요청처리가 메인업무이므로 부하가 높은 경우 스케일러블하게 처리대수 증축, 로드밸런스 등으로 부하분산
+2. 애플리케이션 서버: 업무 처리, 비즈니스 로직이 동작하는 서버
+3. DB 서버: 영구 데이터 관리를 위한 서버. RDBMS 등 미들웨어로 구축, DB 조작이 부하의 원인으로 병목부분이 되는 경우 다수
+    * 높은 가용성 요구. 클러스터링 등 다중화, 장애 대비 백업, 원격지 보관, 성능 튜닝 등
+    
+
+![웹 시스템 아키텍쳐](./rsc/img/web_three_layer_architecture.png "https://itsandtravels.blogspot.com/2018/12/blog-post_8.html")
+
+
+### 영구 데이터 관리
+1. 데이터 백업 및 복원: 서버 장애에 대비한 백업. 퍼블릭 클라우드 서비스를 이용한 원격지 백업 등
+2. 로그 수집: 여러 개의 서버로 된 분산환경에서 통합 감시는 보통 로그 수집 전용 서버를 만들어서 관리.
+    * Unix 계열은 syslogd 데몬이 커널이나 app로부터 수집한 로그 관리
+    * Docker는 하나의 컨테이너에 하나의 프로세스. 
+    * 따라서 실행에 필요한 파일만 컨테이너에 저장. 영구 데이터, 로그는 별도의 인프라 아키텍처 검토
+
+### Docker Compose
+>여러 컨테이너를 모아서 관리하기 위한 툴.  
+'docker-compose.yml' 파일에 컨테이너 구성 정보를 정의  
+'동일 호스트상'의 여러 컨테이너를 일괄적으로 관리한다.
+
+특징
+1. Compose 정의 파일은 웹 app의 의존관계 (DB, 큐, 캐시, 애플리케이션..)를 모아 설정한다.
+2. docker-compose 명령은 정의 파일을 바탕으로 여러 개의 컨테이너를 일원화하여 관리한다.
+3. 컨테이너 구성 정보를 YAML 형식 파일로 관리하므로 CI/CD 프로세스에 있어 자동 테스트 환경 구축에도 적용할 수 있다.
+![docker compose](./rsc/img/docker_compose.png)
+
+## 2. 로컬에서 웹 애플리케이션 실행(실습)
+![docker compose 실습 샘플 구성](./rsc/img/docker_compose_sample.png)
+
+### Compose 구성 파일 작성
+샘플 코드 다운로드
+![clone sample](./rsc/img/clone_sample.png)
+
+docker-compose.yml
+![docker-compose.yml](./rsc/img/docker-compose_yml.png)
+* Compose 정의 파일 맨 앞에 버전 지정
+* 현재 애플리케이션 구성은 webserver와 redis라는 이름의 서비스 2개가 존재
+* webserver는 현재 디렉토리에 있는 Dockerfile에 정의한 구성의 이미지를 빌드(build: .)
+* 외부에 대해 80번 포트를 공개(ports:), 이 컨테이너는 redis 서비스에 의존 중이다.(depends_on:)
+* redis는 Docker Hub에 공개되어 있는 Redis의 공식이미지 4.0버전을 베이스 이미지로 사용
+
+### 여러 Docker 컨테이너 시작
+Docker Compose에서는 각각의 컨테이너를 작동시키기 위한 이미지의 다운로드나 빌드를 하나의 명령으로 모두 실행한다.
+```bash
+# docker-compose를 사용하기 위해선, 우선 관련 패키지를 다운받아야 한다.
+apt-get install docker-compose
+# 컨테이너 작동에 필요한 이미지 다운로드, 빌드 실행
+docker-compose up 
+```
+
+
+![docker-compose up](./rsc/img/sample_docker_compose_up.png)
+![샘플 실행 후 접속](./rsc/img/sample_result.png)
+![docker-compose ps](./rsc/img/docker_compose_ps.png)
+
+### 여러 Docker 컨테이너 정지
+```bash
+docker-compose stop
+```
+![docker-compose stop](./rsc/img/docker_compose_stop.png)
+
+### Docker Compose에서 이용한 리소스 삭제
+```bash
+docker-compose down
+```
+![docker-compose down](./rsc/img/docker_compose_down.png)
+
+<br>
+
+## 3. Docker Compose, 여러 컨테이너 구성 관리
+
+### docker-compose.yml의 개요
+>Docker Compose는 'docker-compose.yml'이라 불리는 YAML 형식    
+Compose 정의 파일에 시스템 안에서 구동하는 여러 서버들의 구성을 모아 정의
+
+>YAML?  
+구조화된 데이터를 표현하기 위한 데이터 포맷. 들여쓰기(스페이스)로 데이터의 계층구조 표현  
+읽고 쓰기 용이해서 설정 파일에 많이 이용된다.  
+YAML에서 데이터의 맨 앞에 '-'를 붙이면 배열을 나타낸다.
+
+
+>Compose 버전에따라 기술할 수 있는 항목이 다르다.  
+여러 개의 Compose 정의 파일이나 확장 서비스를 사용하는 경우 각 파일에서 동일한 번전을 사용해야 한다.
+
+Compose 정의 파일에는 관리할 컨테이너의 서비스, 네트워크, 볼륨을 정의한다.
+```YAML
+#버전 지정
+version: "3"
+
+#서비스 정의
+services:
+  webserver:
+    image: ubuntu
+    ports:
+      - "80:80"
+    networks:
+      - webnet
+
+  redis:
+    image: redis
+    networks:
+      - webnet
+
+#네트워크 정의
+networks:
+  webnet:
+
+# 데이터 볼륨 정의
+volumes:
+  data-volume:
+```
+
+### 이미지 지정, image
+컨테이너의 바탕이 되는 베이스 이미지 지정
+```yaml
+services:
+  webserver:
+    image: ubuntu
+```
+
+### 이미지 빌드, build
+이미지 작성을 Dockerfile에 기술 후 이를 자동으로 빌드하여 베이스 이미지로 지정
+```yaml
+# 현재 docker-compose.yml과 Dockerfile이 같은 디렉토리에 있는 경우
+services:
+  webserver:
+    build: .    # '.'은 현재 디렉토리를 나타냄.
+
+# 임의의 이름으로 된 Dockerfile을 지정해서 빌드할 경우
+services:
+  webserver:
+    build: # /data/Dockerfile-alternate 빌드
+      context: /data    # Dockerfile이 있는 디렉토리의 경로 or Git 리포지토리의 URL 지정
+      dockerfile: Dockerfile-alternate  
+
+# 빌드 시에 인수를 args로 지정할 수 있다.
+# 즉, docker build ~ 명령 실행 시에 전달하던 인수를 지정해 둘 수 있다. 
+# 변수 값은 Docker Compose 실행 머신 위에서만 유효하다.
+services:
+  webserver:
+    build:
+      args:
+        projectno: 1
+        user: namu
+```
+Dockerfile 내용 = 'FROM ubuntu'
+![Docker Compose로 Dockerfile 빌드](./rsc/img/compose_use_dockerfile.png)
+
+
+### 컨테이너 안에서 작동하는 명령 지정, command/entrypoint
+컨테이너에서 작동하는 명령은 command, entrypoint를 통해 지정  
+__베이스 이미지에서 지정되어 있을 때는 덮어쓴다__
+```yaml
+command: /bin/bash
+
+entrypoint:
+  -php
+  - -d
+  - memory_limit=-1
+```
+
+### 컨테이너 간 연결, links
+다른 컨테이너에 대한 링크 기능을 사용하여 연결  
+```yaml
+# 연결할 컨테이너명 지정
+# logserver라는 이름의 컨테이너와 링크
+# 컨테이너명과 별도로 별칭을 붙이고 싶을 때는 '서비스명:별칭'으로 지정
+links:
+  - logserver
+  - logserver:log01
+```
+
+### 컨테이너 간 통신, ports/expose
+컨테이너가 공개하는 포트 지정
+```yaml
+# [호스트 머신 포트번호]:[컨테이너 포트번호] or '[컨테이너 포트번호]' 만 지정
+# 후자의 경우 호스트 머신 포트는 랜덤하게 설정
+ports:  # 공개 포트 지정
+  - "3000"
+  - "8000:8000"
+  - "49100:22"
+  - "127.0.0.1:8001:8001"
+
+# 호스트 머신에 대한 포트를 공개 X, 링크 기능을 통해 연결하는 컨테이너에게만 포트 공개
+# ex) 로그 서버, 호스트 머신에서 직접 액세스하지 않고 was 컨테이너를 경유해서만 액세스하고 싶은 경우
+expose:     # 컨테이너 내부에만 공개하는 포트 지정
+ - "3000"
+ - "8000"
+```
+
+### __서비스 의존관계 정의, depends_on__
+여러 서비스의 의존관계 정의
+```yaml
+# webserver가 db, redis 컨테이너에 각각 의존하고 있다
+# webserver 컨테이너 시작전에 db, redis 컨테이너를 시작
+services:
+  webserver:
+    build: .
+    depends_on:
+      - db
+      - redis
+  redis:
+    image: redis
+  db:
+    image: postgres
+```
+>depends_on은 컨테이너 시작 순서만 제어한다.  
+컨테이너 상의 애플리케이션이 이용 가능해 질 때까지 기다리고 제어하지는 않는다.  
+즉, DB 컨테이너가 먼저 시작하지만 DB가 아직 이용 불가능할 때 webserver가 돌기 시작할 수 있다.  
+이는 애플리케이션 측에서 대책을 마련해야 한다.
+
+### 컨테이너 환경변수 지정, environment/env_file
+컨테이너 안의 환경변수 지정
+```yaml
+# 배열 형식
+environment:
+  - HOGE=fuga
+  - FOO
+
+# 해시 형식으로 지정
+environment:
+  HOGE: fuga
+  FOO:
+
+# 환경변수의 수가 많은 경우 외부 파일을 읽어 지정할 수 있음 'env_file'
+env_file: envfile
+
+# 여러개도 가능
+env_file:
+  - ./envfile1
+  - ./app/envfile2  # 현재 디렉토리에 있는 app 디렉토리 안에
+  - /tmp/envfile3   # 루트 디렉토리 tmp 디렉토리 안에
+```
+애플리케이션 안에서 사용하는 API 키와 같은 비밀정보는 오케스트레이션 툴의 기능을 사용한다.
+
+### 컨테이너 정보 설정, container_name/label
+Docker Compose로 생성되는 컨테이너에 이름을 붙인다.
+```yaml
+# 주의할 점: 
+# Docker 컨테이너명은 고유해야 하므로 커스텀명을 지정하면 여러 컨테이너로 스케일할 수 없어진다.
+container_name: web-container
+
+# 배열 형식 라벨 지정
+labels:
+  - "com.example.description=Accounting webapp:
+  - "com.example.departmetn=Finance"
+# 해시 형식으로 지정
+labels:
+  com.example.description: Accountng webapp
+  com.example.departmetn: Finance
+```
+
+```bash
+# 설정한 라벨 확인
+docker-compose config
+```
+
+### 컨테이너 데이터 관리, volumes/volumes_from
+컨테이너에 볼륨을 마운트
+```yaml
+# 호스트 측에서 마운트할 경로를 지정하려면 
+# [호스트 디렉토리경로 ]:[컨테이너 디렉토리 경로]
+volumes:
+  - /var/lib/mysql
+  - cache/:/tmp/cache
+
+# 볼륨 지정뒤에 ':ro'를 지정하면 readonly로 마운트, ex) 설정파일이 저장된 볼륨
+# 호스트의 configs 디렉토리가 컨테이너 내의 /etc/configs/ 디렉토리에 매핑(마운트)된다.
+# '~'는 유저 홈 디렉토리를 의미
+volumes:
+  - ~/configs:/etc/configs/:ro
+
+# 다른 컨테이너로부터 모든 볼륨을 마운트할 경우, volumes_form에 컨테이너명 지정
+volumes_form:
+  - log
+```
+
+## 4. Docker Compose, 여러 컨테이너 운용
+
+### Docker Compose 버전 확인
+```bash
+docker-compose --version
+```
+>Compoes 정의 파일 지정  
+현재 디렉토리에 docker-compose.yml or .yaml 파일이 없을 때, docker-compose up을 실행하면  
+파일을 찾지 못해 오류 메시지가 표시된다. 다른 이름으로 된 Compose 정의 파일을 사용하려면 -f 옵션으로 지정한다.
+```bash
+# docker-compose -f [정의 파일 경로] up [옵션]
+```
+![Alt text](image.png)
+
+### Docker Compose의 기본 명령
