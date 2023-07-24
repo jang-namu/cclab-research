@@ -1871,6 +1871,163 @@ docker-compose --version
 ```bash
 # docker-compose -f [정의 파일 경로] up [옵션]
 ```
-![Alt text](image.png)
+![docker-compose up alter name compose define file](./rsc/img/alternate_name_docker_compoer_yml.png)
 
 ### Docker Compose의 기본 명령
+
+>docker-compose 명령은 docker-compose.yml을 저장한 디렉토리에서 실행된다.  
+Compose 정의 파일이 현재 디렉토리에 없다면, -f 옵션으로 파일 경로를 지정한다.
+```bash
+# 현재 디렉토리 밑에 sample 디렉토리 안에 존재할 경우
+docker-compose -f ./sample/docker-compose.yml up 
+```
+
+|명령|설명|
+|---|---|
+|up|컨테이너 생성/시작|
+|ps|컨테이너 목록 표시|
+|logs|컨테이너 로그 출력|
+|run|컨테이너 실행|
+|start|컨테이너 시작|
+|stop|컨테이너 정지|
+|restart|컨테이너 재시작|
+|pause|컨테이너 일시 정지|
+|unpause|컨테이너 재개|
+|port|공개 포트번호 확인|
+|config|구성 확인|
+|kill|실행중인 컨테이너 강제 정지|
+|rm|컨테이너 삭제|
+|down|리소스 삭제|
+
+__서브 명령 다음에 컨테이너명을 지정하면 해당 컨테이너만 조작__
+```bash
+docker-compose stop webserver
+```
+
+### 여러 컨테이너 생성, up
+docker-compose.yml을 바탕으로 여러 개의 컨테이너를 생성하여 시작
+```bash
+# docker-compose up [옵션] [서비스명 .]
+# -d, --build, --no-build
+# --no-deps: 링크 서비스를 시작하지 않음
+# -t: 컨테이너 타임아웃 지정(초 단위, default=10)
+# --scale SERVICE=서비스 수: 서비스수 지정
+```
+![docker-compose.yml](./rsc/img/compose_up_yml.png)
+![docker-compose up result](./rsc/img/docker_compose_up.png)
+
+> docker-compose up --build  
+'--build' 옵션은 캐싱된 이미지를 체크하지 않고 무조건 빌드를 하면서 시작한다
+
+> docker-compose up --scale [서비스명=수]  
+'--scale': 컨테이너를 생성할 개수 지정
+server_a의 컨테이너 10개, server_b의 컨테이너 20개 시작시킴
+ex) docker-compose up --scale server_a=10 --scaler server_b=20  
+
+![docker-compose up --scale](./rsc/img/docker_compose_up_scale.png)
+![docker-compose up --scale result](./rsc/img/docker_compose_up_sacle_result.png)
+
+### 여러 컨테이너 확인, ps/logs
+```bash
+# 컨테이너 목록 표시
+# -q: 컨테이너 ID만 출력
+docker-compose ps
+
+# 컨테이너 로그 확인
+docker-compose logs
+```
+
+### 컨테이너에서 명령 실행, run
+Docker Compose로 시작한 컨테이너에서 임의의 명령을 실행
+```bash
+# docker-compose run
+# server_a라는 이름의 컨테이너에서 /bin/bash 실행
+docker-compose run server_a /bin/bash
+```
+* --scale을 통해 여러 컨테이너를 생성하고 docker-compose run 실행 시, 컨테이너를 하나 더 생성하고 그 안에서 명령 실행
+![docker compose run /bin/bash](./rsc/img/docker_compose_run.png)
+
+### 여러 컨테이너 시작/정지/재시작/일시정지/재개, start/stop/restart/pause/unpause
+여러개의 서비스를 일괄적으로 시작/일시정지/재시작..
+```bash
+# docker-compose start/stop/restart
+# docker-compose pause/unpause
+
+# 특정 컨테이너만 조작하고 싶을 경우 명령의 인수에 컨테이너명 지정
+docker-compose restart server_a
+```
+
+### 서비스 구성 확인, port/config
+서비스용 공개포트를 확인할 경우
+
+```bash
+# docker-compose port [옵션] <서비스명> <프라이빗 포트 번호>
+# --protocol=proto: 프로토콜, tcp 또는 udp
+# --index=index: 컨테이너의 인덱스 수
+
+# webserver라는 이름의 서비스의 80번 포트에 할당되어 있는 설정 확인
+docker-compose port webserver 80
+
+
+ Composer의 구성 확인
+ docker-compose config
+```
+![docker-compose config](./rsc/img/docker_compose_config.png)
+
+### 여러 컨테이너 강제 정지/삭제, kill/rm
+kill: 실행 중인 컨테이너를 강제로 정지, 컨테이너에게 시그널을 송신
+> 시그널?  
+Linux 커널에 내장되어 있는, 프로세스 간 신호를 주고받기 위한 장치  
+프로세스에게 어떤 이벤트가 발생했는지 알리기 위한, 소프트웨어적 인터럽트
+
+```bash
+# SIGINT: ctrl+c 인터럽트 발생, 기본적으로 프로세스가 종료됨
+# SIGKILL: 프로세스를 무조건 종료시킴. 절대 무시할 수 없으며 제어도 할 수 없음 
+# 컨테이너에 SIGINT를 송신 (default = SIGKILL)
+docker-compose kill -s SIGINT
+
+# 생성한 여러 컨테이너를 삭제, -f: 물어보지 않고 강제 삭제
+docker-compose rm
+```
+
+
+## 여러 리소스의 일괄 삭제, down
+Compose 정의 파일을 바탕으로 생성한, 컨테이너나 Docker 이미지를 모아서 삭제
+```bash
+# 실행 중인 컨테이너 정지 -> Docker 이미지, 네트워크, 볼륨 일괄 삭제
+# docker-compose down [옵션]
+# --rmi all: 모든 이미지를 삭제
+# --rmi local: 커스텀 태그가 없는 이미지만 삭제
+# -v: Compose 정의 파일의 데이터 볼륨을 삭제
+
+# Compose 정의파일에서 지정한 컨테이너 정시, 모든 이미지 삭제
+docker-compose down --rmi all
+```
+
+<br><br>
+
+# 8. 멀티 호스트 환경에서 Docker 실행 환경 구축
+
+## 1. 개요 - 멀티 호스트 환경에서 컨테이너 관리
+
+### 멀티호스트 환경과 클러스터링
+단일 호스트에서 제공되는 서비스는 장애 발생 시, 전체 서비스가 종료된다.  
+제품 환경에서는 가용성을 위해 시스템 일부에서 장애가 발생해도 서비스가 정지되지 않도록 여러 대의 호스트 서버를 배치한다.  
+>클러스터링?  
+여러 대의 서버나 하드웨어를 모아서 한 대처럼 보이게 하는 기술. 가용성과 확장성이 특징  
+클러스터로 묶인 한 서버에 장애가 발생하면, 다른 정상 상태 서버에 요청을 돌린다.
+
+* 컨테이너 오케스트레이션 툴: 멀티호스트 환경에서 컨테이너들의 클러스터링을 수행하기 위한 툴
+
+### Docker Machine
+>Docker Macine?  
+호스트 머신/클라우드/가상 환경 등에 Docker의 실행환경을 만들 수 있는 CLI기반 툴
+AWS, Azure, OpenStack, VirtualBox 등의 환경 지원
+
+## 2. 웹 애플리케이션 서비스 공개(실습)
+GCP의 가상 머신 GCE(Google Compute Engine)에 Docker Machine을 이용해 Docker 실행환경 구축  
+그 위에서 웹 서비스를 공개한다.
+
+### Docker 실행 환경 작성
+
+
