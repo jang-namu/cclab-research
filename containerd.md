@@ -15,12 +15,12 @@ OCI 런타임 표준을 준수하는 컨테이너를 생성 및 실행하기 위
 Docker는 과거 리눅스 커널이 제공하는 LXC 외부 드라이버에 의존하여 namespace와 cgroups를 사용했다.  
 외부에 의존하지 않기 위해 libcontainer라는 별도의 구현체를 개발하였고, runC는 libcontainer의 clinet wrapper로 Go언어로 개발되었으며, 현재 Docker에서 저수준 컨테이너 런타임으로 사용되고 있다.  
 이제 Docker는 host kernel의 namespace, cgroups에 의존하지 않고 OS에서 독립되어 동작할 수 있게 되었다.
-![Docker 런타임과 OCI, runC](./rsc/img/docker_runtime_oci_runc.png)
+![Docker 런타임과 OCI, runC](./rsc/containerd/img/docker_runtime_oci_runc.png)
 
 Containerd는 이제 컨테이너의 표준으로 자리잡았다.  
 runC가 필요한 시점은 호스트 OS와의 통신과 같은 저수준 런타임이 필요한 경우이다.
 
-![docker vs containerd](./rsc/img/docker_vs_containerd.png)
+![docker vs containerd](./rsc/containerd/img/docker_vs_containerd.png)
 
 <br>
 
@@ -31,7 +31,7 @@ runC가 필요한 시점은 호스트 OS와의 통신과 같은 저수준 런타
 <br>
 
 
-![docker component](./rsc/img/docker_component.png)
+![docker component](./rsc/containerd/img/docker_component.png)
 기존에 docker image ps, docker build~ 등 Docker 명령들은 Docker CLI를 이용했다.  
 dockerd는 이러한 docker CLI로부터의 RESTful API 요청을 수신하여 처리한다.  
 dockerd는 docker engine이라고도 하며, containerd에 의존하여 containerd 없이 단독으로 실행할 수 없다.  
@@ -82,7 +82,7 @@ cgroups은 컨테이너 안에서 사용할 수 있는 리소스의 양을 제�
 OCI 표준 스펙을 준수하는 동시에 가장 널리 쓰이는 것은 runC
 
 ## docker-shim
-![kubelet과 CRI를 포함한 구조](./rsc/img/kublet_cri_docker_component.png)
+![kubelet과 CRI를 포함한 구조](./rsc/containerd/img/kublet_cri_docker_component.png)
 docker-shim은 Docker 내부 컴포넌트 x, 쿠버네티스의 kubelet과 Docker간 통신을 위해 구현된 프로젝트  
 쿠버네티스는 CRI(Container Runtime Interface)를 지원하는 모든 컨테이너 런타임을 통한 컨테이너 실행을 지원한다.
 >CRI(Container Runtime Interface)  
@@ -101,7 +101,7 @@ Docker는 쿠버네티스 등장 이전에 개발되었으므로 당연히 CRI�
 위와 같은 몇몇 이유들로 결국 쿠버네티스는 Docker-shim 지원을 중단하기로 결정한다.  
 쿠버네티스는 CRI를 준수하는 containerd 또는 CRI-O의 사용을 권장한다. 
 
-![Docker-Shim is Deprecated!](./rsc/img/docker_deprecated.png)
+![Docker-Shim is Deprecated!](./rsc/containerd/img/docker_deprecated.png)
 
 [흔들리는 도커(Docker)의 위상 - OCI와 CRI 중심으로 재편되는 컨테이너 생태계](https://www.samsungsds.com/kr/insights/docker.html)  
 [당황하지 마세요. 쿠버네티스와 도커](https://kubernetes.io/ko/blog/2020/12/02/dont-panic-kubernetes-and-docker/)  
