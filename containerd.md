@@ -32,6 +32,7 @@ runC가 필요한 시점은 호스트 OS와의 통신과 같은 저수준 런타
 
 
 ![docker component](./rsc/containerd/img/docker_component.png)
+
 기존에 docker image ps, docker build~ 등 Docker 명령들은 Docker CLI를 이용했다.  
 dockerd는 이러한 docker CLI로부터의 RESTful API 요청을 수신하여 처리한다.  
 dockerd는 docker engine이라고도 하며, containerd에 의존하여 containerd 없이 단독으로 실행할 수 없다.  
@@ -39,22 +40,24 @@ dockerd는 docker engine이라고도 하며, containerd에 의존하여 containe
 <br>
 
 네트워크, volume과 같은 기능은 dockerd에게 위임하고 containerd는 컨테이너에 대한 기능을 갖는다.  
-containerd는 ctrcli라고 불리는 전용 Client CLI를 제공하며 namespace를 제공하여 docker를 통해 실행되는 containerd는 'moby'라는 이름의 네임스페이스에 모든 컨테이너를 생성한다.
+containerd는 ctrcli라고 불리는 전용 Client CLI를 제공하며 namespace를 제공하여 docker를 통해 실행되는  
+containerd는 'moby'라는 이름의 네임스페이스에 모든 컨테이너를 생성한다.
 
 <br>
 
 containerd의 기능
 1. container 생성  
-엄격하게 말하면 containerd 자체가 container를 구동하지는 않는다.
+엄격하게 말하면 containerd 자체가 container를 구동하지는 않는다.  
 containerd는 containerd-shim, runC를 이용하여 컨테이너를 생성하는 역할을 수행한다.
 2. image pull  
-containerd는 컨테이너 구동에 필요한 이미지가 존재하지 않으면, OCI Spec을 기반으로 Image register Server로부터 컨테이너 이미지를 가져온다.
+containerd는 컨테이너 구동에 필요한 이미지가 존재하지 않으면,  
+OCI Spec을 기반으로 Image register Server로부터 컨테이너 이미지를 가져온다.
 3. container lifecycle 관리  
 컨테이너의 상태를 관리한다.
 
 이와같이 containerd는 __독립 실행 가능한__ __high-level의 컨테이너 런타임이다.__
 >high-level 컨테이너 런타임  
-High Level Container Runtime은 이미지 관리, 압축/해제, 저수준 Container Runtime으로의 위임하는 역할을 맡는다.
+High Level Container Runtime은 이미지 관리, 압축/해제, 저수준 Container Runtime으로의 위임하는 역할을 맡는다.  
 일반적으로 데몬 방식으로 동작하며, 외부에서 컨테이너를 실행/모니터링 할 수 있도록 Remote API를 제공한다
 
 <br>
@@ -69,10 +72,11 @@ runC가 종료되도 컨테이너를 관리하도록 해주는 것이 containerd
 
 ## runC = libcontainer
 컨테이너를 실제 생성하는 역할. containerd-shim으로 부터 호출되고 컨테이너 생성 후 종료됨  
-runC는 OCI(Open Container Initiative) 런타임 스펙을 준수하는 __저수준 컨테이너 런타임__
+runC는 OCI(Open Container Initiative) 런타임 스펙을 준수하는 __저수준 컨테이너 런타임__  
 최초 이름은 libcontainer였지만, 도커 프로젝트에서 OCI에 기부되었고 이후 runC로 개명  
 즉, runC는 libcontaienr을 리팩토링하여 만든 구현체  
-libcontainer에서 cgroups 관리 모듈로는 cgroupfs 또는 systemd 둘 중 하나를 사용, 이제는 모든 모듈이 systemd를사용하는 쪽으로 업데이트되고 있다.  
+libcontainer에서 cgroups 관리 모듈로는 cgroupfs 또는 systemd 둘 중 하나를 사용,  
+ 이제는 모든 모듈이 systemd를사용하는 쪽으로 업데이트되고 있다.  
 >Row-level 컨테이너 런타임  
 OCI Runtime으로도 불리며, 오로지 컨테이너를 실행하는 기능만 제공한다.  
 컨테이너는 리눅스의 네임스페이스와 cgroups를 통해 구현되는데,  
@@ -83,6 +87,7 @@ OCI 표준 스펙을 준수하는 동시에 가장 널리 쓰이는 것은 runC
 
 ## docker-shim
 ![kubelet과 CRI를 포함한 구조](./rsc/containerd/img/kublet_cri_docker_component.png)
+
 docker-shim은 Docker 내부 컴포넌트 x, 쿠버네티스의 kubelet과 Docker간 통신을 위해 구현된 프로젝트  
 쿠버네티스는 CRI(Container Runtime Interface)를 지원하는 모든 컨테이너 런타임을 통한 컨테이너 실행을 지원한다.
 >CRI(Container Runtime Interface)  
@@ -94,7 +99,11 @@ kubelet과 컨테이너 런타임 간 인터페이스를 통일한 CRI가 등장
 Docker는 쿠버네티스 등장 이전에 개발되었으므로 당연히 CRI를 준수하지 않았고  
 그래서 kubelet과 Docker 간 CRI를 이용하기 위해 docker-shim을 사용했다.
 
-한동안 docker와 docker-shime은 업데이트 되지 않았고, 이가 쿠버네티스 생태계의 발목을 잡게되었다. 또한 Docker의 모든 명령은 root 권한을 필요로 했으므로 보안문제에 취약했고 데몬형태로 실행되는 docker는 너무 많은 기능을 담당함과 동시에 데몬 하위에 모든 컨테이너를 자식 프로세스로 가져 너무 무겁고 장애가 모든 자식 프로세스에 영향을 끼치게 된다는 취약점을 지녔다. 즉, Docker 데몬의 중지가 쿠버네티스 전체에 악영향을 끼치게 된다.
+한동안 docker와 docker-shime은 업데이트 되지 않았고, 이가 쿠버네티스 생태계의 발목을 잡게되었다.  
+또한 Docker의 모든 명령은 root 권한을 필요로 했으므로 보안문제에 취약하다.  
+데몬형태로 실행되는 docker는 너무 많은 기능을 담당함과 동시에 데몬 하위에 모든 컨테이너를 자식 프로세스로 가져  
+ 너무 무겁고 장애가 모든 자식 프로세스에 영향을 끼치게 된다는 취약점을 지녔다.  
+즉, Docker 데몬의 중지가 쿠버네티스 전체에 악영향을 끼치게 된다.
 
 <br>
 
