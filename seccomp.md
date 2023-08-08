@@ -350,34 +350,35 @@ curl -L -o profiles/fine-grained.json https://k8s.io/examples/pods/security/secc
 ls profiles
 ```
 
-![Alt text](<스크린샷 2023-08-08 오후 12.38.23.png>)
+![Alt text](img10.png)
 
 kind 클러스터를 구성하기 위한 설정파일 다운
 ```bash
 curl -L -O https://k8s.io/examples/pods/security/seccomp/kind.yaml
 ```
-![Alt text](<스크린샷 2023-08-08 오후 12.50.42.png>) 
+![Alt text](img9.png) 
 
-![Alt text](<스크린샷 2023-08-08 오후 12.38.42.png>)
+![Alt text](img8.png)
 
 위 설정파일의 kind를 통해 로컬에 클러스터를 구성한다. 
-![Alt text](<스크린샷 2023-08-08 오후 12.49.05.png>) 
+![Alt text](img7.png) 
 
-![Alt text](<스크린샷 2023-08-08 오후 12.50.06.png>)
+![Alt text](img6.png)
 
 
  
 default
-![Alt text](<스크린샷 2023-08-08 오후 12.56.39.png>) 
-![Alt text](<스크린샷 2023-08-08 오후 12.56.47.png>) 
-![Alt text](<스크린샷 2023-08-08 오후 12.57.05.png>) 
+![Alt text](img5.png) 
+![Alt text](img4.png) 
+
 
 audit.json profile로 seccomp를 적용한 pod를 생성한다. 
 ```bash
 kubectl apply -f https://k8s.io/examples/pods/security/seccomp/ga/audit-pod.yaml
 ```
-![Alt text](<스크린샷 2023-08-08 오후 12.58.34.png>) 
-![Alt text](<스크린샷 2023-08-08 오후 12.59.20.png>)
+![Alt text](img2.png) 
+![Alt text](img3.png) 
+![Alt text](img1.png)
 
 
 ![Alt text](image-1.png)
