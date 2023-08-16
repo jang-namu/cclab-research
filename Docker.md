@@ -43,7 +43,7 @@
     * [7.4 Docker Compose, 여러 컨테이너 운용](#4-docker-compose-여러-컨테이너-운용) 
     * [7.5 개요 - 멀티 호스트 환경에서 컨테이너 관리](#5-개요---멀티-호스트-환경에서-컨테이너-관리)
 * [부록](#)
-    * [1. Containerd](https://git.cclab-inu.com/cclab-ra/chul-hee/-/blob/origin/containerd.md)
+    * [1. Containerd](https://github.com/jang-namu/cclab-research/blob/origin/containerd.md)
 
 <br><br>
 
@@ -191,7 +191,7 @@
 ## 1. 컨테이너 기술의 개요
 * VM은 독립적인 Guest OS의 소유. 인스턴스마다 OS가 존재해야 하므로 무겁고 확장성이 떨어진다.
 * 네트워크로 Virtual Image를 주고받는 것이 부담스럽다. os 가상화에만 주력하여 배포/관리 기능이 부족하다.
-![베어메탈과 호스트 하이퍼바이저](./rsc/img/hypervisor.png)
+![베어메탈과 호스트 하이퍼바이저](./rsc/docker/img/hypervisor.png)
 
 * Container: 개별 애플리케이션 실행에 필요한 실행환경을 모아 마치 별도의 서버인 것처럼 독립적으로 사용한다.
     * __호스트 OS의 리소스를 논리적으로 분리시키고, 여러개의 컨테이너가 공유하여 사용한다.__
@@ -230,11 +230,11 @@ Docker는 Linux Container를 사용한다. 초기에는 LXC(Linux Container)를 
                 * 메시지 큐: 여러 프로세스 간 비동기 통신을 할 때 사용되는 큐잉장치.
 
     > 프로세스가 사용중인 Namespace ID를 '/proc/[PID]/ns' 디렉터리에서 확인할 수 있다.
-    ![프로세스가 사용중인 Namespace'/proc/1/ns'](./rsc/img/procNamespace.png)
+    ![프로세스가 사용중인 Namespace'/proc/1/ns'](./rsc/docker/img/procNamespace.png)
     
     >__리눅스에서 각 프로세스는 1번 프로세스의 네임스페이스를 공유해서실행된다.__  
      __아래는 PID가 263인 프로세스가 사용중인 네임스페이스를 확인할결과이다.__
-    ![Namespace_PID263](./rsc/img/NamespacePID263.png)
+    ![Namespace_PID263](./rsc/docker/img/NamespacePID263.png)
     * PID 네임스페이스
         * 프로세스 ID를 격리할 수 있다. 리눅스에서 PID는 init 프로세스 1로 시작하며 그 외 프로세스는 항상 1보다 큰 PID를 부여받는다.
         * __PID 네임스페이스를 분리하면 PID가 다시 1부터 시작한다.__
@@ -271,7 +271,7 @@ Docker는 Linux Container를 사용한다. 초기에는 LXC(Linux Container)를 
 
 ## 3. Docker의 동작 구조
 * LXC와 Docker의 차이
-![LXC_vs_Docker](./rsc/img/LXC_vs_Docker.png)
+![LXC_vs_Docker](./rsc/docker/img/LXC_vs_Docker.png)
 * LXC는 하나의 컨테이너에 여러 응용을 띄울 수 있는 반면, 도커는 1 컨테이너 1 응용을 권장한다.
 * 도커의 방식에는 여러 장점이 있는데,,
     * 재사용이 쉽고 보안 및 격리 관점에서 더 많은 유연성을 가져올 수 있다.
@@ -320,7 +320,7 @@ Docker는 Linux Container를 사용한다. 초기에는 LXC(Linux Container)를 
 * Docker는 애플리케이션 실행에 필요한 환경을 하나의 이미지로 모아, 다양한 환경에서 실행환경을 구축하고 운용하기 위한 플랫폼.
 * 내부적으로 컨테이너 기술 사용.
 * __도커에서는 인프라(OS, 네트워크, H/W..) 환경을 컨테이너로 관리한다.__
-![Docker](./rsc/img/docker.png)
+![Docker](./rsc/docker/img/docker.png)
 
 * Docker의 기능
     1. Build: 이미지를 만드는 기능
@@ -426,8 +426,8 @@ Docker는 Linux Container를 사용한다. 초기에는 LXC(Linux Container)를 
 ### Docker 일반 사용자 권한
 Docker 명령은 항상 root 권한 'sudo' 필요  
 'sudo' 없이 실행하려면, docker 그룹에 일반사용자 추가
-![docker 그룹에 일반사용자 추가](./rsc/img/add_user_docker_group.png)
-![docker service 재시작](./rsc/img/service_docker_restart.png)
+![docker 그룹에 일반사용자 추가](./rsc/docker/img/add_user_docker_group.png)
+![docker service 재시작](./rsc/docker/img/service_docker_restart.png)
 
 <br>
 
@@ -446,7 +446,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
 1. docker container run: 컨테이너를 작성 및 실행
 2. <Docker 이미지명>: 바탕이 되는 Docker 이미지
 3. <실행할 명령>: 컨테이너 안에서 실행할 명령
-    ![HelloWorld](./rsc/img/helloworld.png)
+    ![HelloWorld](./rsc/docker/img/helloworld.png)
 1. 먼저 명령을 실행하면 Docker 컨테이너의 바탕이 되는 Ubuntu의 Docker이미지가 로컬에 있는지 확인한다.
 2. 만일 로컬에 없다면 Docker 리포지토리에서 Docker 이미지를 다운로드한다.
     * 'ubuntu:latest'는 Ubuntu의 최신버전 이미지를 취득한다는 뜻
@@ -458,7 +458,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     ```
     docker version
     ```
-    ![dockerVersion](./rsc/img/dockerVersion.png)
+    ![dockerVersion](./rsc/docker/img/dockerVersion.png)
 * Docker는 clent-server 구조를 채택하고 있어, client와 server는 remote API를 경유하여 연결된다. 따라서 docker 명령은 서버로 보내져 처리된다.
 
 * Docker 실행환경을 확인한다.
@@ -492,7 +492,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     ```
     docker image ls
     ```
-    ![dockerIamgeLs](./rsc/img/dockerIamgeLs.png)
+    ![dockerIamgeLs](./rsc/docker/img/dockerIamgeLs.png)
 
 * 이미지를 사용하여 Nginx 서버를 가동한다.
     ```bash
@@ -500,12 +500,12 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # -p 옵션을 붙여 브라우저에서 HTTP에 대한 액세스를 허가하고, 컨테이너가 보내는 전송을 허가한다.
     docker conatiner run --name webserver -d -p 80:80 nginx
     ```
-    ![Nginx 이미지 실행](./rsc/img/dockerNginx.png)
+    ![Nginx 이미지 실행](./rsc/docker/img/dockerNginx.png)
     * 여기서 __-d 옵션은 컨테이너를 일반 프로세스가 아닌 데몬 프로세스로, 백그라운드로 실행한다.__
     * -p 옵션은 포트를 지정하는데, 앞에 80은 호스트 컴퓨터에 포트, 뒤에 80은 컨테이너 내부에서 리스닝하고 있는 포트를 의미한다.
     * 영/숫자로 된 문자열은 컨테이너 ID로 Docker 컨테이너를 고유하게 식별한다.
-    ![NginxPage](./rsc/img/NginxPage.png)
-    ![curl로 확인](./rsc/img/curlNginxPage.png)
+    ![NginxPage](./rsc/docker/img/NginxPage.png)
+    ![curl로 확인](./rsc/docker/img/curlNginxPage.png)
 * Nginx 서버의 상태를 확인
     ```bash
     docker container ps
@@ -566,7 +566,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     export DOCKER_CONTENT_TRUST=1
     # export DOCKER_CONTENT_TRUST=0 으로 DCT기능을 무효화한다.
     ```
-    ![Docker Content Trust](./rsc/img/DCT.png)
+    ![Docker Content Trust](./rsc/docker/img/DCT.png)
     * 다운로드 전에 검증이 일어나는 것을 확인할 수 있다.
     * 서명이 되어있지 않은 이미지를 사용하면 오류가 발생한다.
 
@@ -575,7 +575,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # docker image inspect <Image_Name[:Tag_name]>
     docker image inspect centos:7
     ```
-    ![Image Inspect Centos:7](./rsc/img/ImageInspect.png)
+    ![Image Inspect Centos:7](./rsc/docker/img/ImageInspect.png)
     * 결과는 JSON형식으로 반환된다. 이를 편집하여 원하는 정보를 얻을 수 있다.
     * 예를 들어 OS의 값을 취득하고 싶을 경우에는 --format 옵션에서 JSON 형식 데이터의 계층 구조를 지정한다. 다음과 같이 지정한다.
     ```bash
@@ -595,7 +595,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # Nginx Docker 이미지에 대해 사용자명이 asashiho이고 컨테이너명이 webserver이며, 태그 버전정보가 1.0인 태그를 붙인다.
     docker image tag nginx asashiho/webserver:1.0
     ```
-    ![Docker image tag](./rsc/img/TagImage.png)
+    ![Docker image tag](./rsc/docker/img/TagImage.png)
     * 유심히 보면 태그를 붙인 이미지(asshiho/webserver)와 원래 이미지인 nginx의 imageId가 같다.
     * 즉, 태그는 별명을 붙인 것이지 이를 복사하거나 이름을 바꾼 것이 아니다. 실체는 같다.
 
@@ -609,10 +609,10 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     docker search kubernetes
     docker search --filter=start=1000 centos
     ```
-    ![Search Kubernetes](./rsc/img/DockerSearch.png)
+    ![Search Kubernetes](./rsc/docker/img/DockerSearch.png)
     * AUTOMATED: Dockerfile을 바탕으로 자동 생성된 이미지인지 아닌지를 나타낸다.
     * STARS: 즐겨찾기 수
-    ![Search by Stars](./rsc/img/DockerSearchByStars.png)
+    ![Search by Stars](./rsc/docker/img/DockerSearchByStars.png)
     * __명명 규칙, Official이 아닌 사용자가 임의로 작성해 공개하는 이미지의 이름은 '사용자명/이미지명' 형식으로 이름을 붙인다.__
 
 * __이미지 삭제__
@@ -657,7 +657,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
 ### Docker 컨테이너 생성/시작/정지
 * __Docker 컨테이너의 라이프 사이클__
 * 컨테이너에는 다음과 같은 라이프사이클이 존재한다. 
-![Container LifeCycle](./rsc/img/containerLifecycle.png)
+![Container LifeCycle](./rsc/docker/img/containerLifecycle.png)
 
 * 컨테이너 생성, docker container create
     * 이미지로부터 컨테이너를 생성한다. 이미지의 실체는 Docker에서 서버기능을 작동시키기 위해 필요한 디렉토리 및 파일들이다.
@@ -695,7 +695,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # --tty,-t 단말기 디바이스를 사용한다.
     docker container run -it --name "test1" centos /bin/cal
     ```
-    ![Docker Run 예시](./rsc/img/containerRun.png)
+    ![Docker Run 예시](./rsc/docker/img/containerRun.png)
     * 위의 예시에서는 -it 옵션으로 콘솔에 결과를 출력했다
         * -i 는 컨테이너의 표준 출력을 연다
         * -t 는 tty(단말 디바이스)를 확보한다.
@@ -753,13 +753,13 @@ Docker 명령은 항상 root 권한 'sudo' 필요
 
     docker container run inspect --format="{{.Config.MacAddress}}" <container id>
     ``` 
-    ![docker run --mac-address=](./rsc/img/dockerRunMacAddress.png)
+    ![docker run --mac-address=](./rsc/docker/img/dockerRunMacAddress.png)
 
     * 호스트명과 IP주소 정의
     ```bash
     docker container run -it --add-host test.com:192.168.1.1 centos
     ```
-    ![docker run -hostname](./rsc/img/dockerHostname.png)
+    ![docker run -hostname](./rsc/docker/img/dockerHostname.png)
 
     * Docker는 기본적으로 호스트 OS와 브리지 연결을 하지만 --net 옵션을 사용하여 네트워크 설정가능
         * bridge : 기본값, 브리지 연결을 사용
@@ -778,7 +778,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     docker network create -d bridge webap-net
     docker container run --net=weba;=net -it centos
     ```
-    ![user define network](./rsc/img/userDegineNetwork.png)
+    ![user define network](./rsc/docker/img/userDegineNetwork.png)
 
 * __자원을 지정하여 컨테이너 생성 및 실행__
 * CPU나 메모리와 같은 자원을 지정하여 컨테이너를 생성 및 실행할 수 있다.
@@ -811,8 +811,8 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     docker container run -it -e foo=bar centos /bin/bash
     ```
 
-    ![docker Run Env](./rsc/img/dockerRunEnv.png)
-    <img src=./rsc/img/dockerRunEnvRes.png width="35%"></img>
+    ![docker Run Env](./rsc/docker/img/dockerRunEnv.png)
+    <img src=./rsc/docker/img/dockerRunEnvRes.png width="35%"></img>
 
 * 환경변수를 정의한 파일을 읽어 일괄적으로 등록할 수 있다.
     ```bash
@@ -821,7 +821,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     docker container run -it --env-file=env_list centos /bin/bash
     ```
 
-    <img src=./rsc/img/dockerRunEnvFileRes.png width="35%"></img>
+    <img src=./rsc/docker/img/dockerRunEnvFileRes.png width="35%"></img>
 
 * 컨테이너의 작업 디렉토리를 지정하여 실행
     ```bash
@@ -842,7 +842,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # --quier, -q 컨테이너 ID만 표시
     # --size, -s 파일크기 표시
     ```
-    ![dockerContainerLs](./rsc/img/containerls.png)
+    ![dockerContainerLs](./rsc/docker/img/containerls.png)
     * IMAGE: 컨테이너의 바탕이 된 이미지
     * COMMAND: 컨테이너 안에서 실행되고 있는 명령
     * CREATED: 컨테이너 작성 후 경과 시간
@@ -854,34 +854,34 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # 컨테이너명이 test1인 것을 조건으로 필터링.
     docker container ls -a -f name=test2
     ```
-    ![conatinerLsFiltering](./rsc/img/containerLsfiltering.png)
+    ![conatinerLsFiltering](./rsc/docker/img/containerLsfiltering.png)
 
     * --format 옵션으로 출력 형식을 지정할 수 있다. 출력형식을 지정하기 위해 플레이스 홀더를 사용한다.
-    <img src=./rsc/img/formatOption.png width="80%"></img>
+    <img src=./rsc/docker/img/formatOption.png width="80%"></img>
     * 에를 들어 아래 명령어는 컨테이너 이름과 가동 상태(Status)를 콜론으로 구분하여 표시한다.
     ```bash
     docker container ls -a --format "{{.Names}}: {{.Status}}"
     ```
-    ![formatExample1](./rsc/img/formatExample1.png)
+    ![formatExample1](./rsc/docker/img/formatExample1.png)
 
     * 출력 항목을 표 형식으로도 지정할수도 있다.
     ```bash
     docker container ls -a --format "table {{.Names}}\t{{.Status}}\t {{.Mounts}}"
     ```
-    ![formatExample2](./rsc/img/formatExample2.png)
+    ![formatExample2](./rsc/docker/img/formatExample2.png)
 
 * __컨테이너 가동 확인__
 * Docker 상에서 작동하는 컨테이너 가동 상태를 확인한다. 
     ```bash
     # docker container stats [컨테이너 식별자]
     ```
-    ![container stats](./rsc/img/containerStats.png)
+    ![container stats](./rsc/docker/img/containerStats.png)
 
     * 컨테이너에서 실행 중인 프로세스를 확인한다.
     ```bash
     # docker container top [컨테이너 식별자]
     ```
-    ![container top](./rsc/img/containerTop.png)
+    ![container top](./rsc/docker/img/containerTop.png)
 
 * __컨테이너 시작__
 * 정지하고 있는 컨테이너를 시작한다.
@@ -924,7 +924,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # docker container unpause <컨테이너 식별자>
     ```
     
-    ![container pause](./rsc/img/containerPause.png)
+    ![container pause](./rsc/docker/img/containerPause.png)
     * ls 명령으로 확인 시 STATUS가 (Paused)로 되어있음을 확인할 수 있다.
 
 <br>
@@ -939,7 +939,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # --no-trunc 상세정보 출력
     # -q, --quiet 네트워크 ID만 출력
     ```
-    ![docker network ls](./rsc/img/networkls.png)
+    ![docker network ls](./rsc/docker/img/networkls.png)
     * Docker는 기본값으로 bridge, host, none 세 개의 네트워크를 만든다.
     * 현재 webap-net으로 들어간 네트워크는 앞서 실습에서 만들었던 사용자정의 네트워크이다.(docker network create~)
     * 네트워크의 scope는 'swarm | global | local'이 존재한다.
@@ -948,14 +948,14 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     ```bash
     docker network ls -q --filter driver=bridge
     ```
-    ![network ls filter](./rsc/img/networkLsFilter.png)
+    ![network ls filter](./rsc/docker/img/networkLsFilter.png)
     
     * 네트워크를 명시적으로 지정하지 않고 컨테이너를 시작하면 기본값으로 bridge 네트워크를 사용한다.
     ```bash
     docker container run -itd --name=sample ubuntu:latest
     docker container inspect sample
     ```
-    ![default is bridge!](./rsc/img/networkDefault.png)
+    ![default is bridge!](./rsc/docker/img/networkDefault.png)
     
 * __네트워크 작성__
 * 새로운 네트워크를 작성한다.
@@ -968,7 +968,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     # --label 네트워크에 설정하는 라벨
     docker network create --driver=bridge web-network
     ```
-    ![user define network](./rsc/img/userDefineNetwork2.png)
+    ![user define network](./rsc/docker/img/userDefineNetwork2.png)
     * CIDR? Classless Inter-Domain Rounting
     * 도메인간의 라우팅에 사용되는 인터넷 주소를 원래 IP주소 클래스 체계를 쓰는 것보다 더 능동적으로 할당하여 지정하는 방식
 ---
@@ -997,7 +997,7 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     ```bash
     # docker network inspect [옵션] [네트워크]
     ```
-    ![network inspect](./rsc/img/networkInspect.png)
+    ![network inspect](./rsc/docker/img/networkInspect.png)
 
 * __네트워크 삭제__
 * 네트워크를 삭제하려면 'docker network disconnect'로 연결중인 모든 컨테이너와의 연결을 해제해야 한다.
@@ -1014,8 +1014,8 @@ __컨테이너 연결__
 # ctrl + c : 종료 | ctrl + p -> ctrl + q (순서대로) : 컨테이너를 종료하지 않고 분리(빠져나옴)
 docker container attach sample
 ```  
-![docker container attach sample](./rsc/img/attach_sample.png)
-![docker container attach separate](./rsc/img/attach_separate.png)
+![docker container attach sample](./rsc/docker/img/attach_sample.png)
+![docker container attach separate](./rsc/docker/img/attach_separate.png)
 
 __컨테이너 내 프로세스 실행__
 ```bash
@@ -1024,26 +1024,26 @@ __컨테이너 내 프로세스 실행__
 docker container -it webserver /bin/bash
 # webserver라는 이름으로 가동중인 컨테이너에 /bin/bash를 실행
 ```
-![container exec](./rsc/img/container_exec.png)
+![container exec](./rsc/docker/img/container_exec.png)
 
 __컨테이너 프로세스 확인__
 ```bash
 docker container top
 ```
-![container top webserver](./rsc/img/container_top.png)
+![container top webserver](./rsc/docker/img/container_top.png)
 
 __프로세스가 전송되고 있는 포트 확인__
 ```bash
 docker container port
 ```
-![container port webserver](./rsc/img/container_port.png)
+![container port webserver](./rsc/docker/img/container_port.png)
 
 __컨테이너 이름 변경__
 ```bash
 # docker cotainer rename [old_name] [new_name] 
 docker container rename webserver myserver
 ```
-![container rename](./rsc/img/container_rename.png)
+![container rename](./rsc/docker/img/container_rename.png)
 
 
 __컨테이너 안의 파일 복사__
@@ -1051,9 +1051,9 @@ __컨테이너 안의 파일 복사__
 # docker container cp <컨테이너 식별자>:<컨테이너 안의 파일 경로> <호스트의 디렉토리 경로>
 # docker container cp <호스트의 파일> <컨테이너 식별자>:<컨테이너 안의 파일 경로>
 ```
-![container cp](./rsc/img/container_cp.png "컨테이너 -> 호스트")
+![container cp](./rsc/docker/img/container_cp.png "컨테이너 -> 호스트")
 
-![container cp host to container](./rsc/img/container_cp_host.png "호스트 -> 컨테이너")
+![container cp host to container](./rsc/docker/img/container_cp_host.png "호스트 -> 컨테이너")
 
 
 __컨테이너 조작 차분 확인__  
@@ -1062,8 +1062,8 @@ __컨테이너 조작 차분 확인__
 # docekr container diff <컨테이너 식별자>
 # A: 파일추가, D: 파일 삭제, C: 파일 수정
 ```
-![container create and create user](./rsc/img/container_diff_pre.png)
-<img src="./rsc/img/container_diff.png" width="50%"/>
+![container create and create user](./rsc/docker/img/container_diff_pre.png)
+<img src="./rsc/docker/img/container_diff.png" width="50%"/>
 
 <br>
 
@@ -1074,13 +1074,13 @@ __컨테이너로 이미지 작성__
 # -a (author), -m (메시지), -c (커밋 시 Dockerfile 명령을 지정), -p (컨테이너를 일시 정지하고 커밋)
 docker container commit -a "jang-namu" myserver namu/nginx : 1.0
 ```
-![container commit](./rsc/img/container_commit.png)
+![container commit](./rsc/docker/img/container_commit.png)
 
 * 이미지 정보를 확인한다
     ```bash
     docker image inspect namu/nginx:1.0
     ```
-    ![image inspect](./rsc/img/image_inspect.png)
+    ![image inspect](./rsc/docker/img/image_inspect.png)
   
 
 
@@ -1089,9 +1089,9 @@ __컨테이너를 tar 파일로 출력__
 # docker container export <컨테이너 식별자>
 docker container export myserver > latest.tar
 ```
-![container export](./rsc/img/container_export.png)
+![container export](./rsc/docker/img/container_export.png)
 * tar파일 내용 확인
-![tar -tf](./rsc/img/container_export_tar.png)
+![tar -tf](./rsc/docker/img/container_export_tar.png)
 
 
 __tar파일로 이미지 작성__  
@@ -1103,7 +1103,7 @@ Linux OS 이미지의 디렉토리/파일로부터 Docker 이미지를 만듬
 # test.tar로 모아놓은 디렉토리/파일을 바탕으로 이미지 작성.
 cat test.tar | docker image import - namu/nginx:1.0
 ```
-![image import](./rsc/img/image_import.png)
+![image import](./rsc/docker/img/image_import.png)
 
 __이미지 저장, 로드__  
 * Docker 이미지를 tar 파일로 저장
@@ -1112,7 +1112,7 @@ __이미지 저장, 로드__
 # -o : 저장되는 파일명 지정
 docker image save -o exported.tar tensorflow
 ```
-![image save](./rsc/img/image_save.png)
+![image save](./rsc/docker/img/image_save.png)
 
 * tar파일로부터 이미지
 ```bash
@@ -1133,7 +1133,7 @@ __불필요한 이미지/컨테이너 일괄 삭제__
 # docker system prune [옵션]
 # -a (사용하지 않는 리소스 모두), -f (강제)
 ```
-![system prune](./rsc/img/system_prune.png)
+![system prune](./rsc/docker/img/system_prune.png)
 
 <br><br>
 
@@ -1144,7 +1144,7 @@ Dockerfile: Docker의 인프라 구성 관리 파일
 ## 1. Dockerfile 구성 관리
 Dockerfile: 베이스 이미지, 환경변수, 데몬 실행 정보, 미들웨어나 OS 설치/설정 등 컨테이너 구성정보를 기술, 자동화
 * 'docker build' 명령은 docerfile에 기술된 내용을 바탕으로 Docker 이미지 작성
-![dockerfile을 이용한 구성관리](./rsc/img/dockerfile_intro.png)
+![dockerfile을 이용한 구성관리](./rsc/docker/img/dockerfile_intro.png)
 
 ### Dockerfile의 기본 구문
 
@@ -1201,7 +1201,7 @@ FROM [이미지명]@[다이제스트]
 FROM centos:centos7     # 예제, 태그명 생략 시 latest 적용
 ```
 * 다이제스트: Docker Hub에 이미지 업로드와 동시에 자동으로 부여되는 식별자.
-![image digests](./rsc/img/image_digests.png)
+![image digests](./rsc/docker/img/image_digests.png)
     >__Dockerfile에서 이미지를 지정할 때, '[이미지명]@[다이제스트]'로 작성__
 
 <br>
@@ -1225,13 +1225,13 @@ FROM centos:centos7
 ```bash
 docker buuld -t sample:1.0 /home/docker/test
 ```
-![docker build](./rsc/img/docker_build.png)
+![docker build](./rsc/docker/img/docker_build.png)
 * 로컬에 없으면 원격 Docker Repository에서 다운로드
 * sample 1.0, 1.1 이미지: 베이스이미지 centos7을 기반으로 생성
 * 1.0, 1.1, centos:centos7 이미지 ID가 모두 같음.
 * __이미지로서는 각기 다른 이름이 붙었지만 그 실체는 모두 동일한 이미지를 나타냄__
-![builded image, base image id](./rsc/img/build_image_id.png)
-<img src="./rsc/img/they_are_same.png" width="60%"/>
+![builded image, base image id](./rsc/docker/img/build_image_id.png)
+<img src="./rsc/docker/img/they_are_same.png" width="60%"/>
 
 <br>
 
@@ -1241,7 +1241,7 @@ __Dockerfile.base라는 이름의 파일을 Dockerfile로 지정 후 build__
 docker build -t sample -f Dockerfile.base ./test 
 ```
 
-![docker build from other name dockerfile](./rsc/img/build_from_other_name_dockerfile.png)
+![docker build from other name dockerfile](./rsc/docker/img/build_from_other_name_dockerfile.png)
 
 <br>
 
@@ -1252,10 +1252,10 @@ docker build - < Dockerfile
 ```
 * 이 방법은 빌드에 필요한 파일을 포함시킬 수 없음 -> 하나의 아카이브로 모아 사용
 1. 더미파일과 Dockerfile을 하나의 tar로 모음
-![tar dockerfile and dummy](./rsc/img/tar_dockerfile.png)
+![tar dockerfile and dummy](./rsc/docker/img/tar_dockerfile.png)
 
 2. tar 내용 확인 후, 표준 입력을 통해 build
-![docker build through stdin](./rsc/img/docker_build_stdin.png)
+![docker build through stdin](./rsc/docker/img/docker_build_stdin.png)
 
 > Docker는 이미지 빌드 시, 자동으로 중간 이미지 생성  
 > 다른 이미지 빌드 시, 내부적으로 중간 이미지 재이용 -> 빌드 속도 향상
@@ -1283,9 +1283,9 @@ COPY index.html /usr/share/nginx/html/
 CMD ["nginx", "-g", "daemon off;"]
 ```
 * 위 Dockerfile을 이용해 build
-![Dockerfile build 이미지 레이어](./rsc/img/docker_build_image_layer.png)
+![Dockerfile build 이미지 레이어](./rsc/docker/img/docker_build_image_layer.png)
 * image inspect 확인 결과, 3개의 layer 존재 (CMD 명령을 제외한 3개 이미지 생성)
-![이미지 레이어 생성 확인](./rsc/img/inspect_image_layer.png)
+![이미지 레이어 생성 확인](./rsc/docker/img/inspect_image_layer.png)
 
 ## 3.Docker 이미지 레이어
 docker는 이미지를 레이어로 분리해서 관리한다.  
@@ -1294,8 +1294,8 @@ Dockerfile을 이용한 빌드 시에는 명령 단위로 이미지가 생성된
 이미 빌드한 Dockerfile을 가지고 다시 빌드할 때는, 캐싱돼있는 이미지 레이어를 사용한다.  
 캐싱된 이미지 레이어를 사용한다는 것은 하나의 실체 이미지를 공유한다는 의미이다.
 * 같은 Dockerfile을 가지고 다시 한 번 빌드. 이전에 만든 이미지를 가져다 사용
-![build 재시도](./rsc/img/cached_build.png)
-![Dockerfile, docker image layer](./rsc/img/docker_image_layer.png "https://kimjingo.tistory.com/62")
+![build 재시도](./rsc/docker/img/cached_build.png)
+![Dockerfile, docker image layer](./rsc/docker/img/docker_image_layer.png "https://kimjingo.tistory.com/62")
 
 <br>
 
@@ -1307,10 +1307,10 @@ Dockerfile을 이용한 빌드 시에는 명령 단위로 이미지가 생성된
 
 ## 4. 멀티스테이지 빌드를 사용한 개발
 멀티스테이지 빌드: 애플리케이션 제품 환경에서 필요한 실행 바이너리만 이미지에 심어넣는 기능
-![실습 샘플 클론](./rsc/img/sample_clone.png)
+![실습 샘플 클론](./rsc/docker/img/sample_clone.png)
 
 개발환경용 build Image와 제품환경용 Production Image, 총 두 개의 이미지가 생성된다.
-![Dockerfile](./rsc/img/sample_dockerfile.png)
+![Dockerfile](./rsc/docker/img/sample_dockerfile.png)
 1. Build Image
     * Go 버전 1.13을 베이스 이미지로 작성하고 builder라는 별명을 붙임
     * 개발에 필요한 버전을 설치하여 로컬 환경에 있는 소스코드를 컨테이너 안으로 복사한다.
@@ -1344,8 +1344,8 @@ RUN apt-get install -y nginx
 # 문자열 인수는 ''로 감싼다.
 RUN ["/bin/bash", "-c", "apt-get install -y nignx"]
 ```
-![dockerfile run example](./rsc/img/dockerfile_run_example.png)
-![run image history](./rsc/img/run_image_history.png)
+![dockerfile run example](./rsc/docker/img/dockerfile_run_example.png)
+![run image history](./rsc/docker/img/run_image_history.png)
 * /bin/sh를 경유하여 명령을 실행하고 싶을 때는 Shell 형식으로, 그 외의 경우 Exec 형식으로 기술하는 것이 좋다.
 
 * 이렇게 작성하자
@@ -1387,13 +1387,13 @@ EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
 ```
-![CMD](./rsc/img/dockerfile_cmd_example.png)
+![CMD](./rsc/docker/img/dockerfile_cmd_example.png)
 
 
 ### 빌드 완료 후 실행되는 명령, ONBUILD
 그 다음 빌드에서 실행할 명령을 이미지 안에 설정하기 위함  
 즉, 현재 Dockerfile로 빌드한 이미지를, 베이스 이미지로 하여 또 다른 이미지를 빌드할 때 명령이 실행된다.
-![dockerfile onbuild](./rsc/img/dockerfile_onbuild.png "https://kimjingo.tistory.com/68")
+![dockerfile onbuild](./rsc/docker/img/dockerfile_onbuild.png "https://kimjingo.tistory.com/68")
 * 이미지에 설정된 ONBUILD 명령 확인
 ```bash
 docker image inspect --format="{{ .Config.OnBuild }}" [이미지명]
@@ -1560,16 +1560,16 @@ Docker Hub에 공개되어 있는 공식이미지 'registry'를 사용.
 * version 0 = python으로 작성
 * version 2 = Go언어로 작성 (추천)
 
-![docker registry 이미지 다운로드](./rsc/img/pull_registry_image.png)
-![registry 이미지로부터 컨테이너 생성/실행](./rsc/img/container_run_registry_image.png)
+![docker registry 이미지 다운로드](./rsc/docker/img/pull_registry_image.png)
+![registry 이미지로부터 컨테이너 생성/실행](./rsc/docker/img/container_run_registry_image.png)
 ```bash
 # 프라이빗 네트워크 안의 Docker 레지스트리에 업로드할 이미지는 다음 규칙을 통해 태그를 붙여야한다.
 # docker image tag [로컬의 이미지명] [업로드할 레지스트리 주소:포트번호]/[이미지명]
 docker image tag ubuntu localhost:5000/namu-ubuntu
 ```
-![업로드할 이미지 태그 규칙](./rsc/img/image_tag_rule.png)
-![이미지 삭제](./rsc/img/rm_original_image.png)
-![로컬 레지스트리에서 이미지 pull](./rsc/img/image_pull_from_local_registry.png)
+![업로드할 이미지 태그 규칙](./rsc/docker/img/image_tag_rule.png)
+![이미지 삭제](./rsc/docker/img/rm_original_image.png)
+![로컬 레지스트리에서 이미지 pull](./rsc/docker/img/image_pull_from_local_registry.png)
 >프라이빗 레지스트리에서 Docker 이미지를 영구 데이터로 관리하여야 한다.  
 이는 호스트 머신에 볼륨을 공유함으로써 달성할 수 있다.  
 하지만, 이 데이터를 관리하려면 신뢰성이 높고 충분한 스토리지가 마련되어야하며,  
@@ -1595,7 +1595,7 @@ docker image tag ubuntu localhost:5000/namu-ubuntu
     * 높은 가용성 요구. 클러스터링 등 다중화, 장애 대비 백업, 원격지 보관, 성능 튜닝 등
     
 
-![웹 시스템 아키텍쳐](./rsc/img/web_three_layer_architecture.png "https://itsandtravels.blogspot.com/2018/12/blog-post_8.html")
+![웹 시스템 아키텍쳐](./rsc/docker/img/web_three_layer_architecture.png "https://itsandtravels.blogspot.com/2018/12/blog-post_8.html")
 
 
 ### 영구 데이터 관리
@@ -1614,17 +1614,17 @@ docker image tag ubuntu localhost:5000/namu-ubuntu
 1. Compose 정의 파일은 웹 app의 의존관계 (DB, 큐, 캐시, 애플리케이션..)를 모아 설정한다.
 2. docker-compose 명령은 정의 파일을 바탕으로 여러 개의 컨테이너를 일원화하여 관리한다.
 3. 컨테이너 구성 정보를 YAML 형식 파일로 관리하므로 CI/CD 프로세스에 있어 자동 테스트 환경 구축에도 적용할 수 있다.
-![docker compose](./rsc/img/docker_compose.png)
+![docker compose](./rsc/docker/img/docker_compose.png)
 
 ## 2. 로컬에서 웹 애플리케이션 실행(실습)
-![docker compose 실습 샘플 구성](./rsc/img/docker_compose_sample.png)
+![docker compose 실습 샘플 구성](./rsc/docker/img/docker_compose_sample.png)
 
 ### Compose 구성 파일 작성
 샘플 코드 다운로드
-![clone sample](./rsc/img/clone_sample.png)
+![clone sample](./rsc/docker/img/clone_sample.png)
 
 docker-compose.yml
-![docker-compose.yml](./rsc/img/docker-compose_yml.png)
+![docker-compose.yml](./rsc/docker/img/docker-compose_yml.png)
 * Compose 정의 파일 맨 앞에 버전 지정
 * 현재 애플리케이션 구성은 webserver와 redis라는 이름의 서비스 2개가 존재
 * webserver는 현재 디렉토리에 있는 Dockerfile에 정의한 구성의 이미지를 빌드(build: .)
@@ -1641,21 +1641,21 @@ docker-compose up
 ```
 
 
-![docker-compose up](./rsc/img/sample_docker_compose_up.png)
-![샘플 실행 후 접속](./rsc/img/sample_result.png)
-![docker-compose ps](./rsc/img/docker_compose_ps.png)
+![docker-compose up](./rsc/docker/img/sample_docker_compose_up.png)
+![샘플 실행 후 접속](./rsc/docker/img/sample_result.png)
+![docker-compose ps](./rsc/docker/img/docker_compose_ps.png)
 
 ### 여러 Docker 컨테이너 정지
 ```bash
 docker-compose stop
 ```
-![docker-compose stop](./rsc/img/docker_compose_stop.png)
+![docker-compose stop](./rsc/docker/img/docker_compose_stop.png)
 
 ### Docker Compose에서 이용한 리소스 삭제
 ```bash
 docker-compose down
 ```
-![docker-compose down](./rsc/img/docker_compose_down.png)
+![docker-compose down](./rsc/docker/img/docker_compose_down.png)
 
 <br>
 
@@ -1736,7 +1736,7 @@ services:
         user: namu
 ```
 Dockerfile 내용 = 'FROM ubuntu'
-![Docker Compose로 Dockerfile 빌드](./rsc/img/compose_use_dockerfile.png)
+![Docker Compose로 Dockerfile 빌드](./rsc/docker/img/compose_use_dockerfile.png)
 
 
 ### 컨테이너 안에서 작동하는 명령 지정, command/entrypoint
@@ -1879,7 +1879,7 @@ docker-compose --version
 ```bash
 # docker-compose -f [정의 파일 경로] up [옵션]
 ```
-![docker-compose up alter name compose define file](./rsc/img/alternate_name_docker_compoer_yml.png)
+![docker-compose up alter name compose define file](./rsc/docker/img/alternate_name_docker_compoer_yml.png)
 
 ### Docker Compose의 기본 명령
 
@@ -1921,8 +1921,8 @@ docker-compose.yml을 바탕으로 여러 개의 컨테이너를 생성하여 �
 # -t: 컨테이너 타임아웃 지정(초 단위, default=10)
 # --scale SERVICE=서비스 수: 서비스수 지정
 ```
-![docker-compose.yml](./rsc/img/compose_up_yml.png)
-![docker-compose up result](./rsc/img/docker_compose_up.png)
+![docker-compose.yml](./rsc/docker/img/compose_up_yml.png)
+![docker-compose up result](./rsc/docker/img/docker_compose_up.png)
 
 > docker-compose up --build  
 '--build' 옵션은 캐싱된 이미지를 체크하지 않고 무조건 빌드를 하면서 시작한다
@@ -1932,8 +1932,8 @@ docker-compose.yml을 바탕으로 여러 개의 컨테이너를 생성하여 �
 server_a의 컨테이너 10개, server_b의 컨테이너 20개 시작시킴
 ex) docker-compose up --scale server_a=10 --scaler server_b=20  
 
-![docker-compose up --scale](./rsc/img/docker_compose_up_scale.png)
-![docker-compose up --scale result](./rsc/img/docker_compose_up_sacle_result.png)
+![docker-compose up --scale](./rsc/docker/img/docker_compose_up_scale.png)
+![docker-compose up --scale result](./rsc/docker/img/docker_compose_up_sacle_result.png)
 
 ### 여러 컨테이너 확인, ps/logs
 ```bash
@@ -1953,7 +1953,7 @@ Docker Compose로 시작한 컨테이너에서 임의의 명령을 실행
 docker-compose run server_a /bin/bash
 ```
 * --scale을 통해 여러 컨테이너를 생성하고 docker-compose run 실행 시, 컨테이너를 하나 더 생성하고 그 안에서 명령 실행
-![docker compose run /bin/bash](./rsc/img/docker_compose_run.png)
+![docker compose run /bin/bash](./rsc/docker/img/docker_compose_run.png)
 
 ### 여러 컨테이너 시작/정지/재시작/일시정지/재개, start/stop/restart/pause/unpause
 여러개의 서비스를 일괄적으로 시작/일시정지/재시작..
@@ -1980,7 +1980,7 @@ docker-compose port webserver 80
  Composer의 구성 확인
  docker-compose config
 ```
-![docker-compose config](./rsc/img/docker_compose_config.png)
+![docker-compose config](./rsc/docker/img/docker_compose_config.png)
 
 ### 여러 컨테이너 강제 정지/삭제, kill/rm
 kill: 실행 중인 컨테이너를 강제로 정지, 컨테이너에게 시그널을 송신

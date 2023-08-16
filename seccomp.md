@@ -34,7 +34,7 @@ secure computing mode, 샌드박싱을 실현하는 메커니즘 중 하나
 
 |System Call in OS|
 |:-:|
-|![Alt text](image.png)|
+|![os, system call](./rsc/seccomp/system_call.png)|
 
 최초 리눅스 커널에 도입된, 보안 컴퓨팅 모드.
 1. sigreturn(신호 처리부에서 복귀)  
@@ -105,38 +105,39 @@ __셋째. NNP MODE__, NO New Privileges
 
 1. STRICT_MODE
 ```c
+#include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <seccomp.h>
+#include <unistd.h>
+#include <string.h>
+#include <linux/seccomp.h>
+#include <sys/prctl.h>
 
-int main() {
-    // seccomp 필터 생성
-    scmp_filter_ctx ctx;
-    ctx = seccomp_init(SCMP_ACT_ALLOW); // 기본 동작 설정, rule에 추가되지 않은 시스템 콜 허용
-    // seccomp_init(SCMP_ACT_KILL): rule에 추가하지 않은 시스템 콜 차단.(화이트 리스트)
+int main(int argc, char **argv) {
+        int output = open("output.txt", O_WRONLY);
+        const char *val = "test";
 
-    // open 시스템 콜 차단
-    seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(open), 0);
-    // 추가로 제한할 시스템 호출이 있다면 여기에 추가
+        printf("prctl() 함수 호출로 Seccomp Strict Mode 적용\n");
+        prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT);
 
-    // 필터를 로드하고 활성화
-    seccomp_load(ctx);
-    seccomp_release(ctx);
+        printf("이미 열려있는 파일에 작성\n");
+        write(output, val, strlen(val)+1);
 
-    // open 시스템 호출만 허용하는 코드
-    FILE *file = fopen("example.txt", "r");
-    if (file == NULL) {
-        perror("Error opening file");
-        return 1;
-    }
+        printf("readOnly로 파일 열기\n");
+        int input = open("output.txt", O_RDONLY);
 
-    printf("File opened successfully.\n");
-    fclose(file);
-
-    return 0;
+        printf("이 메세지는 출력되지 않는다.");
 }
-
 ```
+
+1. STRICT mode를 적용하는 코드 test.c 작성 후 컴파일
+![Alt text](write_test1.png) 
+2. 컴파일 된 t1 확인
+![Alt text](compile_test1.png) 
+3. t1 실행, STRICT mode는 read, write, exit, sigreturn만을 허용한다.  
+이미 열려있는 파일에 작성(write)는 할 수 있지만, 새로운 파일을 열려고하자 차단당했다.  
+![Alt text](execute_test1.png) 
+
+
 
 >SCMP_ACT_ALLOW, SCMP_ACT_KILL  
 seccomp 필터에서 사용되는 action 값.  
@@ -146,6 +147,71 @@ sccomp 필터는 시스템 콜을 필터링하고 프로세스의 동작을 제�
 >SCMP_ACT_ALLOW: 특정 시스템 콜 허용. 정상 실행함.  
 SCMP_ACT_KILL: 특정 시스템 콜 차단, 프로세스 종료.  
 다만, 액션에 대한 프로세스만 종료. 시스템 콜을 유발한 프로세스 자체가 종료되진 않는다.
+
+
+2. seccomp-bpf
+```C
+#include <seccomp.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
+void main(void)
+{
+        /* libseccomp 컨텍스트 초기화 */
+        scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_KILL);
+
+        /* 종료 허용 */
+        printf("규칙 추가 : exit_group 허용\n");
+        seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
+
+        /* 현재 pid 가져오기 허용 */
+        //printf("Adding rule : Allow getpid\n");
+        //seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpid), 0);
+        printf("규칙 추가 : getpid 거부\n");
+        seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EBADF), SCMP_SYS(getpid), 0);
+
+        /* glibc에서 요구하는 대로 데이터 세그먼트 크기 변경 허용 */
+        printf("Adding rule : Allow brk\n");
+        seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(brk), 0);
+
+        /* fd 1에 최대 512바이트 쓰기 허용 */
+        printf("규칙 추가 : FD 1에 최대 512바이트 쓰기 허용\n");
+        seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 2,
+        SCMP_A0(SCMP_CMP_EQ, 1),
+        SCMP_A2(SCMP_CMP_LE, 512));
+
+        /* 다른 fd에 쓰는 경우 -EBADF 반환 */
+        printf("규칙 추가: 1을 제외한 모든 FD에 쓰기 거부 \n");
+        seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EBADF), SCMP_SYS(write), 1,
+        SCMP_A0(SCMP_CMP_NE, 1));
+
+        /* 필터를 로드하고 적용 */
+        printf("규칙을 로드하고 적용 \n");
+        seccomp_load(ctx);
+        seccomp_release(ctx);
+        printf("이 프로세스는 %d입니다\n", getpid());
+}
+```
+
+### seccomp-bpf, getpid syscall 차단
+1. 위 코드를 test2.c로 작성
+![Alt text](write_test2.png) 
+2. test2.c를 컴파일, libseccomp를 링킹해야 한다.
+![Alt text](compile_test2.png) 
+3. t2를 실행한다
+![Alt text](execute_test2.png)
+getpid() 시스템 콜이 차단됐다. (pid는 1(=root)이상 자연수)  
+현재 getpid()가 차단되어 쓰레기 값이 들어간 것을 확인할 수 있다.
+
+
+### getpid syscall 허용
+1. 위의 파일에서 getpid()에 관한 룰을 ALLOW로 수정
+![Alt text](modify_test3.png) 
+
+2. t3로 컴파일
+![Alt text](compile_test3.png) 
+3. 실행결과 getpid()가 정상 실행되면서, 정상적인 pid 값을 반환
+![Alt text](execute_test3.png)
 
 <br><br>
 
@@ -350,35 +416,18 @@ curl -L -o profiles/fine-grained.json https://k8s.io/examples/pods/security/secc
 ls profiles
 ```
 
-![Alt text](img10.png)
 
 kind 클러스터를 구성하기 위한 설정파일 다운
 ```bash
 curl -L -O https://k8s.io/examples/pods/security/seccomp/kind.yaml
 ```
-![Alt text](img9.png) 
 
-![Alt text](img8.png)
 
 위 설정파일의 kind를 통해 로컬에 클러스터를 구성한다. 
-![Alt text](img7.png) 
 
-![Alt text](img6.png)
-
-
- 
-default
-![Alt text](img5.png) 
-![Alt text](img4.png) 
 
 
 audit.json profile로 seccomp를 적용한 pod를 생성한다. 
 ```bash
 kubectl apply -f https://k8s.io/examples/pods/security/seccomp/ga/audit-pod.yaml
 ```
-![Alt text](img2.png) 
-![Alt text](img3.png) 
-![Alt text](img1.png)
-
-
-![Alt text](image-1.png)
