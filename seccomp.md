@@ -129,13 +129,13 @@ int main(int argc, char **argv) {
 }
 ```
 
-1. STRICT mode를 적용하는 코드 test.c 작성 후 컴파일
-![Alt text](write_test1.png) 
-2. 컴파일 된 t1 확인
-![Alt text](compile_test1.png) 
-3. t1 실행, STRICT mode는 read, write, exit, sigreturn만을 허용한다.  
-이미 열려있는 파일에 작성(write)는 할 수 있지만, 새로운 파일을 열려고하자 차단당했다.  
-![Alt text](execute_test1.png) 
+1. STRICT mode를 적용하는 코드 test.c 작성 후 컴파일  
+![Alt text](./rsc/seccomp/write_test1.png)   
+2. 컴파일 된 t1 확인  
+![Alt text](./rsc/seccomp/compile_test1.png)     
+3. t1 실행, STRICT mode는 read, write, exit, sigreturn만을 허용한다.    
+이미 열려있는 파일에 작성(write)는 할 수 있지만, 새로운 파일을 열려고하자 차단당했다.    
+![Alt text](./rsc/seccomp/execute_test1.png)   
 
 
 
@@ -168,6 +168,8 @@ void main(void)
         //printf("Adding rule : Allow getpid\n");
         //seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpid), 0);
         printf("규칙 추가 : getpid 거부\n");
+
+    
         seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EBADF), SCMP_SYS(getpid), 0);
 
         /* glibc에서 요구하는 대로 데이터 세그먼트 크기 변경 허용 */
@@ -194,24 +196,27 @@ void main(void)
 ```
 
 ### seccomp-bpf, getpid syscall 차단
-1. 위 코드를 test2.c로 작성
-![Alt text](write_test2.png) 
-2. test2.c를 컴파일, libseccomp를 링킹해야 한다.
-![Alt text](compile_test2.png) 
-3. t2를 실행한다
-![Alt text](execute_test2.png)
+1. 위 코드를 test2.c로 작성  
+![Alt text](./rsc/seccomp/write_test2.png)   
+
+2. test2.c를 컴파일, libseccomp를 링킹해야 한다.  
+![Alt text](./rsc/seccomp/compile_test2.png)   
+
+3. t2를 실행한다  
+![Alt text](./rsc/seccomp/execute_test2.png)  
 getpid() 시스템 콜이 차단됐다. (pid는 1(=root)이상 자연수)  
 현재 getpid()가 차단되어 쓰레기 값이 들어간 것을 확인할 수 있다.
 
 
 ### getpid syscall 허용
-1. 위의 파일에서 getpid()에 관한 룰을 ALLOW로 수정
-![Alt text](modify_test3.png) 
+1. 위의 파일에서 getpid()에 관한 룰을 ALLOW로 수정  
+![Alt text](./rsc/seccomp/modify_test3.png)   
 
-2. t3로 컴파일
-![Alt text](compile_test3.png) 
-3. 실행결과 getpid()가 정상 실행되면서, 정상적인 pid 값을 반환
-![Alt text](execute_test3.png)
+2. t3로 컴파일  
+![Alt text](./rsc/seccomp/compile_test3.png)   
+
+3. 실행결과 getpid()가 정상 실행되면서, 정상적인 pid 값을 반환  
+![Alt text](./rsc/seccomp/execute_test3.png)  
 
 <br><br>
 
@@ -431,3 +436,4 @@ audit.json profile로 seccomp를 적용한 pod를 생성한다.
 ```bash
 kubectl apply -f https://k8s.io/examples/pods/security/seccomp/ga/audit-pod.yaml
 ```
+

@@ -313,9 +313,7 @@ Desired State를 선언하면, 지속적으로 컨테이너의 상태를 확인�
 
 # 3장. 쿠버네티스 설치
 
-
-
-## 2. CSP 제공 쿠버네티스 도구
+## 1. CSP 제공 쿠버네티스 도구
 각 CSP에서는 관리형 쿠버네티스 도구를 제공한다.
 
 1. Google GKE (Google Kloud Engine)  
@@ -323,7 +321,7 @@ Desired State를 선언하면, 지속적으로 컨테이너의 상태를 확인�
 2. Amazone EKS (Elastic Kubernetes Service)  
 3. MS AKS (Azure Kubernetes Service)  
 
-## 3. 쿠버네티스 클러스터를 직접 구성하는 도구
+## 2. 쿠버네티스 클러스터를 직접 구성하는 도구
 
 ###  Kubeadm
 ---
@@ -395,6 +393,117 @@ kubeadm처럼 별도의 로드밸런서를 두지않고 노드 각각의 __Nginx
 >
 >Nginx: 리버스 프록시 기능을 가진 웹서버로 주로 웹 서버로의 요청을 받아 웹 애플리케이션 서버로 전달하는 역할을 수행한다.  
 이외에도 정적파일 서비스, SSL/TLS 지원, 가상 호스팅, 압축, 보안 기능 등 다양한 기능을 제공하는 웹서버로 널리 사용된다.  
-
-
 >[10분 테코톡, Nginx](https://www.youtube.com/watch?v=6FAwAXXj5N0&t=18s)
+
+
+### Kubespray 설치 및 환경설정
+
+#### ssh 키 생성과 배포  
+![Alt text](./rsc/kubernetes/img/kubespray_ssh_connection.png)
+1. 우선 다른 서버에 SSH로 접속하도록 설정한다.  
+master에서 ssh key를 생성하고 다른 노드들에 pub 키를 배포한다.  
+
+```bash
+ssh-keygen -t rsa
+```
+![Alt text](./rsc/kubernetes/img/ls_ssh_directory.png)  
+
+ssh 공개키를 배포한다.
+```bash
+ssh-copy-id [계정이름]@[서버IP]
+```
+![Alt text](./rsc/kubernetes/img/ssh_authorized_keys.png)  
+
+각 서버에 authorized-keys가 생성된 것을 확인한다.  
+```bash
+cat .ssh/authorized_keys
+```
+![Alt text](./rsc/kubernetes/img/pip_install_requirements.png)  
+
+#### kubespray 설치
+Kubespray를 깃허브에서 클론해온다.   
+```bash
+git clone https://github.com/kubernetes-sigs/kubespray.git
+cd kubespray
+#git checkout -b [버전태그]
+git checkout -b v2.22.1
+git status
+```
+![Alt text](./rsc/kubernetes/img/git_clone_kuberspray.png)  
+
+requirements.txt는 pip로 설치할 패키지 정보가 담겨있다.  
+이는 kubespray가 필요로 하는 파이썬 패키지들이다.  
+![Alt text](./rsc/kubernetes/img/cat_requirements.png)
+
+pip를 통해 패키지 설치  
+```bash
+sudo pip install -r requirements.txt
+```
+>pip2는 ansible 7.6.0을 지원하지 않는다.  
+>![Alt text](./rsc/kubernetes/img/pip2_deprecation.png)    
+>python3 pip를 설치한다.  
+>![Alt text](./rsc/kubernetes/img/install_python3_pip.png)    
+
+ansible 설치 확인  
+![Alt text](./rsc/kubernetes/img/ansible_version.png)  
+
+#### kubespray 설정 
+마스터 노드를 포함, 클러스터로 구성할 모든 서버의 정보와 설치 옵션을 설정한다.  
+여기서는 inventory/sample 디렉터리에 설정 기본 템플릿을 수정해서 사용한다.  
+
+기본 템플릿을 namucluster(새로 만든 디렉터리)로 복사해서 사용한다.  
+![Alt text](./rsc/kubernetes/img/create_namucluster.png)  
+
+![Alt text](./rsc/kubernetes/img/cd_inventory_sample.png)  
+
+>group_vars: 클러스터 설치에 필요한 설정 내용  
+>inventory.ini: 설치 대상 서버들의 정보를 설정
+
+>tree 명령어로 디렉토리 구조 확인    
+>![Alt text](./rsc/kubernetes/img/tree_inventory_group_vars.png)  
+all: 설치 환경 및 방법에 관한 설정  
+all.yml: kubespray의 설치 및 설정  
+aws.yml: AWS 환경에 설치할 때 적용할 설정  
+>
+>etcd.yml: etcd 설치에 필요한 상세 설정 내용  
+>
+> k8s-cluster: 쿠버네티스 관련 설정 존재  
+k8s-cluster.yml: 쿠버네티스 클러스터를 설치할 때 적용할 설정  
+addons.yml: 클러스터 설치 후 추가로 설치할 구성요소 설정
+k8s-net-*.yml: 클러스터 네트워크 플러그인 별 상세 설정,   
+네트워크 플로그인은 k8s-cluster.yml 파일의 kube-network_plugin 변수에 설정한 내용을 적용하고, 상세 설정은 k8s-net-*.yml 파일의 설정에 따른다.
+
+```bash
+vi inventory/[mycluster]/inventory.ini
+```
+![Alt text](./rsc/kubernetes/img/modify_inventory_ini.png)  
+>kube_node: 워커 노드로 사용할 서버의 호스트네임 설정
+
+>ansible을 통해 각 노드들과의 통신을 확인한다.  
+![Alt text](./rsc/kubernetes/img/ansible_ping_cluster_fail.png)  
+현재 호스트에도 ssh 키를 부여하고 다시 확인해보면 정상적으로 연결된다.  
+![Alt text](./rsc/kubernetes/img/ansible_need_ssh_on_host.png)  
+
+모든 노드 apt 캐시 업데이트
+```bash
+# permission denied를 해결하기 위해 인수로 비밀번호를 넘겨준다.(--extra-vars "ansible_sudo_pass=~")
+ansible all -i inventory/mycluster/inventory.ini -m apt -a 'update_cache=yes' --become --extra-vars "ansible_sudo_pass=[password]"
+```
+![Alt text](./rsc/kubernetes/img/ansible_apt_update_cluster.png)  
+
+```bash
+# 쿠버네티스 클러스터를 구성한다.  
+# ansible-playbook ~ 명령으로 cluster.yml 스크립트를 실행한다.  
+# 구성시간 20분 이상 소요
+ansible-playbook -i inventory/mycluster/inventory.ini -v --become --become-user=root --extra-vars "ansible_sudo_pass=[password] cluster.yml"
+```
+
+마지막으로 각 호스트네임 옆에 'failed=0'을 확인하면 정상적으로 설치되었음을 알 수 있다.  
+![Alt text](./rsc/kubernetes/img/install_success.png)  
+
+![Alt text](./rsc/kubernetes/img/test_kubectl_get_node.png)
+
+
+
+
+
