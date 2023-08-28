@@ -8,6 +8,9 @@
     * [1.4 ebpf](#14-ebpf)
     * [1.5 seccomp 모드](#15-seccomp-모드)
 * [2장. seccomp 실습](#2-seccomp-실습)
+    * [2.1 실습환경 구성](#21-실습환경-구성)
+    * [2.2 세 개의 프로파일, 실습](#22-실습)
+* [3장. ebpf](#3-ebpf)
 
 
 # 1. seccomp
@@ -31,6 +34,7 @@ secure computing mode, 샌드박싱을 실현하는 메커니즘 중 하나
 
 응용 프로그램이 커널에 요청할 수 있는 시스템 콜의 집합을 제한하는 메커니즘  
 * 응용 프로그램은 시스템 콜을 통해 자신이 직접 할 수 없는 작업을 커널에 요청한다
+* seccomp는 스레드별로 성정되므로 프로세스의 각 스레드가 seccomp를 독립적으로 구성해야함
 
 |System Call in OS|
 |:-:|
@@ -137,7 +141,12 @@ int main(int argc, char **argv) {
 이미 열려있는 파일에 작성(write)는 할 수 있지만, 새로운 파일을 열려고하자 차단당했다.    
 ![Alt text](./rsc/seccomp/execute_test1.png)   
 
-
+|함수|설명|
+|:-:|:-:|
+|seccomp_init()|Seccomp 모드의 기본값을 설정, 초기화. 임의의 시스템콜이 호출되면 해당하는 이벤트 발생|
+|seccomp_rule_add()|Seccomp 규칙을 추가. 임의의 시스템콜을 허용/거부|
+|seccomp_load()|추가한 규칙을 애플리케이션에 반영|
+|seccomp_release()|init()이나 ~rule_add() 등 적용된 ctx 필터를 해방한다.(메모리 해제..) 커널에 이미 load()한 seccomp 필터는 영향받지 않는다.|
 
 >SCMP_ACT_ALLOW, SCMP_ACT_KILL  
 seccomp 필터에서 사용되는 action 값.  
@@ -219,6 +228,32 @@ getpid() 시스템 콜이 차단됐다. (pid는 1(=root)이상 자연수)
 ![Alt text](./rsc/seccomp/execute_test3.png)  
 
 <br><br>
+
+```py
+import docker
+import json
+
+def apply_seccomp_profile(container_id, seccomp_profile_path):
+    # Connect to the Docker daemon
+    client = docker.from_env()
+
+    # Read the seccomp profile JSON file
+    with open(seccomp_profile_path, 'r') as profile_file:
+        seccomp_profile = json.load(profile_file)
+
+    # Apply seccomp profile to the container
+    try:
+        container = client.containers.get(container_id)
+        container.update(security_opt=['seccomp=' + json.dumps(seccomp_profile)])
+        print("Seccomp profile applied to container:", container_id)
+    except docker.errors.NotFound:
+        print("Container not found:", container_id)
+
+if __name__ == "__main__":
+    container_id = "your_container_id_here"
+    seccomp_profile_path = "/path/to/seccomp-profile.json"
+    apply_seccomp_profile(container_id, seccomp_profile_path)
+```
 
 # 2. seccomp 실습
 
@@ -391,49 +426,235 @@ sudo rm $HOME/k8s_init.log
 
 <br>
 
-### kind
-kind는 로컬 컴퓨터에서 Kubernetes를 실행할 수 있도록 해준다.  
-kind는 Docker에서 쿠버네티스를 실행한다.  
-즉, 클러스터의 노드들은 모두 컨테이너다.  
+## 2.2 실습  
 
-이를 통하면 호스트 머신의 디렉토리를 마운트하여 사용이 가능하기 때문에,   
-실습과정의 간편화를 위해 kind를 사용하여 클러스터를 구성한다.
 
-```bash
-# kind 설치 
-[ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
-chmod +x ./kind
-sudo mv ./kind /usr/local/bin/kind
-```
-AMD64/x86_64, 다른 환경에서는 아래 링크 확인  
-[kind-quick-start](https://kind.sigs.k8s.io/docs/user/quick-start/#installing-from-release-binaries)
-
-<br>
-
-## 2.2 실습
-
-세 종류의 seccomp 프로파일을 다운한다.
+실습을 위해 워커 노드에 세 종류의 seccomp 프로파일을 다운받는다.  
+seccomp 프로파일은 워커 노드마다 존재해야 한다.  
 ```bash
 mkdir ./profiles
 curl -L -o profiles/audit.json https://k8s.io/examples/pods/security/seccomp/profiles/audit.json
 curl -L -o profiles/violation.json https://k8s.io/examples/pods/security/seccomp/profiles/violation.json
 curl -L -o profiles/fine-grained.json https://k8s.io/examples/pods/security/seccomp/profiles/fine-grained.json
-ls profiles
 ```
+![Alt text](./rsc/seccomp/download_profiles.png)  
+![Alt text](./rsc/seccomp/ls_profiles.png)  
 
+### audit, system call 호출 시 로그 작성  
+```json
+{
+    "defaultAction": "SCMP_ACT_LOG"
+}
+```  
 
-kind 클러스터를 구성하기 위한 설정파일 다운
-```bash
-curl -L -O https://k8s.io/examples/pods/security/seccomp/kind.yaml
-```
-
-
-위 설정파일의 kind를 통해 로컬에 클러스터를 구성한다. 
-
-
-
-audit.json profile로 seccomp를 적용한 pod를 생성한다. 
+audit.json profile로 seccomp를 적용한 pod를 생성한다.   
 ```bash
 kubectl apply -f https://k8s.io/examples/pods/security/seccomp/ga/audit-pod.yaml
+```   
+![Alt text](./rsc/seccomp/create_audit_pod.png)  
+
+
+```yaml
+# audit-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: audit-pod
+  labels:
+    app: audit-pod
+spec:
+  securityContext:
+    seccompProfile:
+      type: Localhost
+      localhostProfile: profiles/audit.json
+  containers:
+  - name: test-container
+    image: hashicorp/http-echo:0.2.3
+    args:
+    - "-text=just made some syscalls!"
+    securityContext:
+      allowPrivilegeEscalation: false
 ```
 
+NodePort service로 특정 포트로의 외부 트래픽을 클러스터 내부 노드로 보낸다.  
+```bash
+kubectl expose pod audit-pod --type NodePort --port 5678
+```  
+![Alt text](./rsc/seccomp/export_audit_service.png)  
+
+http 통신, 'http://<워커노드 IP>:<NodePort>'에 접속한 결과  
+![Alt text](./rsc/seccomp/audit_http_connect.png)  
+
+var/log/syslog에 찍인 로그내용 확인  
+```bash
+tail -f /var/log/syslog | grep 'http-echo'
+```  
+![Alt text](./rsc/seccomp/audit_syslog.png)  
+
+
+### violation, ERRNO을 발생시킨다.
+```json
+{
+    "defaultAction": "SCMP_ACT_ERRNO"
+}
+```
+
+```bash
+kubectl apply -f https://k8s.io/examples/pods/security/seccomp/ga/violation-pod.yaml
+```
+violation-pod를 생성하는 manifest 파일은 metadata-name과 metadata-labels-app의 내용을 violation-pod,  
+spec-securityContext-seccompProfile-localhostProfile의 내용은 profiles/violation.json으로 수정했다.  
+
+![Alt text](./rsc/seccomp/create_violation_pod.png)
+
+audit의 경우에서 확인했듯이 간단한 http-echo 서버에도 많은 시스템콜이 필요하다.  
+violation 프로파일은 시스템 콜 호출 시 에러가 발생하므로 컨테이너가 정상적으로 실행되지 못 한다.  
+
+![Alt text](./rsc/seccomp/violation_pod_is_restricted.png)
+
+
+### fine-grained, 필요한 syscall만 허용.
+```json
+{
+    "defaultAction": "SCMP_ACT_ERRNO",
+    "architectures": [
+        "SCMP_ARCH_X86_64",
+        "SCMP_ARCH_X86",
+        "SCMP_ARCH_X32"
+    ],
+    "syscalls": [
+        {
+            "names": [
+                "accept4",
+                "epoll_wait",
+                "pselect6",
+                "futex",
+                "madvise",
+                "epoll_ctl",
+                "getsockname",
+                "setsockopt",
+                "vfork",
+                "mmap",
+                "read",
+                "write",
+                "close",
+                "arch_prctl",
+                "sched_getaffinity",
+                "munmap",
+                "brk",
+                "rt_sigaction",
+                "rt_sigprocmask",
+                "sigaltstack",
+                "gettid",
+                "clone",
+                "bind",
+                "socket",
+                "openat",
+                "readlinkat",
+                "exit_group",
+                "epoll_create1",
+                "listen",
+                "rt_sigreturn",
+                "sched_yield",
+                "clock_gettime",
+                "connect",
+                "dup2",
+                "epoll_pwait",
+                "execve",
+                "exit",
+                "fcntl",
+                "getpid",
+                "getuid",
+                "ioctl",
+                "mprotect",
+                "nanosleep",
+                "open",
+                "poll",
+                "recvfrom",
+                "sendto",
+                "set_tid_address",
+                "setitimer",
+                "writev"
+            ],
+            "action": "SCMP_ACT_ALLOW"
+        }
+    ]
+}
+```  
+
+마찬가지로 audit-pod를 생성할 때 사용한 manifest 파일을 수정해서 사용한다.  
+```bash
+kubectl apply -f https://k8s.io/examples/pods/security/seccomp/ga/fine-pod.yaml
+```  
+![Alt text](./rsc/seccomp/create_find_pod.png)
+
+NodePort 서비스를 통해 노출시킨다.  
+![Alt text](./rsc/seccomp/expose_fine_pod.png)  
+
+기본이 ERRNO이고 필요한 시스템콜을 ALLOW 했기 때문에, 로그는 당연히 뜨지않는다.
+![Alt text](./rsc/seccomp/log_fine_pod.png)
+
+http 통신, 'http://<워커노드 IP>:<NodePort>'  
+![Alt text](./rsc/seccomp/http_fine_connect.png)  
+<br><br>
+
+# 3. ebpf  
+
+## 3.1 ebpf란?  
+extended bpf는 기존의 classic bpf를 확장하여  
+기존의 네트워크 패킷을 확인하는 것 뿐 아니라, 커널 수준에서 완벽하게 하나의 프로그램으로 동작한다.  
+|![Alt text](./rsc/seccomp/cbpf_vs_ebpf.png)|
+|:-:|
+|11개의 64bit Register, 512개의 8bit Stack, Key-Value를 저장할 수 있는 무제한의 Map|
+|https://ssup2.github.io/theory_analysis/Linux_BPF/|
+
+cbpf, classic bpf는 사용할 수 있는 리소스의 한계가 분명했다.  
+이에 ebpf를 정의하면서는, 더 많은 기능과 사용할 수 있는 리소스를 재정의했다.  
+
+
+![Alt text](./rsc/seccomp/ebpf_flow.png)  
+ebpf 프로그램은 LLVM/clang을 통해 바이트코드로 컴파일된다.  
+컴파일된 ebpf 프로그램은 tc나 iproute2와 같은 ebpf 매니징 툴에 의해 커널에 적재된다.  
+(tc, iproute2는 모두 리눅스 네트워크 매니징, 모니터링 툴)
+
+tc, iproute2는 내부적으로 bpf system call을 이용해 ebpf 바이트코드를 ebpf에 적재한다.
+이 단계에서 verifier는 ebpf 바이트코드가 정상적으로 실행이 되는지(이를테면 허용되지 않은 메모리 영역을 참조하는지..)를 검사한다.  
+필요에 따라 ebpf 프로그램의 일부는 JIT Compiler를 통해 native code로 변환되어 동작한다.  
+이를 통해 ebpf 명령어를 프로세서의 기본 명령어(opcode)에 매핑할 수 있어, 커널을 다시 컴파일할 필요가 없다.
+
+bpf system call은 ebpf 프로그램을 적재할 뿐 아니라, ebpf가 작성하는 map에 App이 접근할 수 있도록 만들어준다.  
+App과 ebpf는 Map을 통해 통신한다.
+
+### 실질적인 hooking은 어디에서 일어나야 할까  
+ebpf의 유용성으로 hook 수가 급증 -> 시스템 성능 저하 우려
+NIC와 통신하는 드라이버에 ebpf를 배치시켜 패킷 송수신의 최전방에서 패킷을 죽일지 살릴지를 결정한다.  
+* 기존 대비 4~5배 성능 향상  
+![Alt text](./rsc/seccomp/ebpf_hook_xdp.png)  
+
+위와 같은 eBPF 기반 고성능 data 경로를 XDP(eXpress Data Path)라고 한다.  
+
+
+## 3.2 eBPF register
+BPF는 세부분으로 구성된다.  
+1. 32비트 하위 레지스터를 포함하는 11개의 64비트 레지스터.
+2. 프로그램 카운터(PC).
+3. 512바이트 크기의 eBPF 스택 공간.
+레지스터의 이름은 r0에서 r10까지로 지정되며 BPF 호출 규칙은 다음과 같다.
+
+* r0: 호출된 도우미 함수의 반환 값, eBPF 프로그램의 종료 값을 저장
+* r1-r5: eBPF가 kernel helper 함수를 호출할 때 전달된 매개변수를 보유
+* r6-r9: callee에 의해 저장되며 함수가 반환된 후 caller가 읽을 수 있다.
+* r10: eBPF 스택 공간의 포인터 주소를 보유하는 읽기 전용 레지스터
+
+스택 공간은 r1-r5 값을 임시로 보관하는 데 사용된다.  
+레지스터 수가 제한되기 떄문에 레지스터의 값이 여러 보조 함수 호출 간 재사용되는 경우,  
+eBPF 프로그램은 일시적으로 eBPF 스택에 덤프하거나 callee가 보유한 레지스터에 저장해야 한다.
+
+>ex) bpf 프로그램이 실행되면 r1에는 프로그램의 컨텍스트(프로그램 입력 매개변수)가 저장된다.  
+>ebpf는 100만개의 명령어를 사용할 수 있으며, 또 다른 ebpf 프로그램을 호출할 수 있는데 현재 depth 32레벨까지 tail call이 가능하다. 
+
+## 3.3 eBPF Map
+Map은 커널에 상주하는 효율적인 key-value 저장소  
+Map의 데이터는 모든 eBPF 프로그램이 액세스할 수 있다.  
+eBPF 프로그램 호출 간 상태 정보 등이 저장되며, file descripter를 통해 user space에서도 접근이 가능하다.  
+따라서 Map을 통해 ebpf 프로그램과 ebpf 프로그램, 그리고 ebpf 프로그램과 user space App이 통신할 수 있다.
