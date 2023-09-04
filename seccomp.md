@@ -658,3 +658,62 @@ Map은 커널에 상주하는 효율적인 key-value 저장소
 Map의 데이터는 모든 eBPF 프로그램이 액세스할 수 있다.  
 eBPF 프로그램 호출 간 상태 정보 등이 저장되며, file descripter를 통해 user space에서도 접근이 가능하다.  
 따라서 Map을 통해 ebpf 프로그램과 ebpf 프로그램, 그리고 ebpf 프로그램과 user space App이 통신할 수 있다.
+
+
+## 3.4 BCC (BPF Compiler Collection) 설치
+BPF는 커널에 포함되어 있지만, BPF를 가지고 코드를 작성하기에는 Javascript v8 위에서 프로그래밍하는 것과 비슷하게 어렵다.  
+Javascript도 Vue나 React와 같은 프레임워크 위에서 사용하는 것과 비슷하게 BPF는 BCC, bpftrace로 작성된다.  
+
+BCC 패키지는 업데이트 되지 않고있어 최신버전은 Source를 통해 빌드해야한다.  
+[Project: iovisor - bcc installing](https://github.com/iovisor/bcc/blob/master/INSTALL.md#ubuntu---binary)
+
+### BCC 설치를 위한 빌드 종속성
+환경: Ubuntu 22.04 jammy  
+```bash
+sudo apt install -y zip bison build-essential cmake flex git libedit-dev \
+  libllvm14 llvm-14-dev libclang-14-dev python3 zlib1g-dev libelf-dev libfl-dev python3-setuptools \
+  liblzma-dev libdebuginfod-dev arping netperf iperf
+```
+
+### BCC 설치 및 컴파일
+```bash
+git clone https://github.com/iovisor/bcc.git
+mkdir bcc/build; cd bcc/build
+cmake ..
+make
+sudo make install
+cmake -DPYTHON_CMD=python3 .. # build python3 binding
+pushd src/python/
+make
+sudo make install
+popd
+```
+
+### tutorial  
+opensnoop은 open system call을 hooking하는 예제 프로그램.  
+
+![Alt text](./rsc/seccomp/bcc_err_python_symbol.png)  
+다만, opensnoop 실행 시 python을 찾지 못하는 문제가 발생했고.  
+'python'라는 이름의 python3 심볼릭 링크를 생성하여 해결하였다.  
+
+![Alt text](./rsc/seccomp/bcc_tool_opensnoop.png)  
+
+
+
+### /bcc/examples/hello_world.py  
+
+![Alt text](./rsc/seccomp/hello_world_py.png)
+
+```sh
+sudo python3 hello_world.py
+```
+![Alt text](./rsc/seccomp/bcc_tool_hello_world.png)
+
+각 라인에 대한 설명  
+* text='...': BPF 프로그램을 인라인으로 정의. 프로그램은 C로 작성되어 Python 문자열로 파싱됨.  
+* kprobe__sys_clone(): kprobes를 통한 kernel 동적 트레이싱 숏컷
+* bpf_trace_printk(): 공통 Trace_pipe(/sys/kernel/debug/tracing/trace_pipe)에 대한 printf()용 간단한 커널 기능.
+* .trace_print(): Trace_pipe를 읽어 출력하는 bcc routine
+
+>kprobes (kernel probes)  
+>커널에서 특정 event가 발생하면 probe이 동작해 해당 동작을 hooking하고 이를 처리하는 handler를 실행한다.  
