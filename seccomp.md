@@ -603,6 +603,15 @@ http 통신, 'http://<워커노드 IP>:<NodePort>'
 ## 3.1 ebpf란?  
 extended bpf는 기존의 classic bpf를 확장하여  
 기존의 네트워크 패킷을 확인하는 것 뿐 아니라, 커널 수준에서 완벽하게 하나의 프로그램으로 동작한다.  
+
+### hook 
+eBPF 프로그램은 이벤트 기반이며 커널이나 app.이 특정 hook point를 통과할 때 실행됨  
+pre-defined된 hook에는 system call, function entry/exit, kernel tracepoints, network events 등이 있음.  
+![Alt text](./rsc/seccomp/ebpf_execve.png)
+
+요구사항에 맞는 hook이 pre-defined 되어있지 않은 경우, kprobe 또는 uprobe(사용자 프로브)를 생성하여 kernel 또는 userspace app.의 거의 모든 위치에 eBPF 프로그램을 연결할 수 있음.  
+
+### structure
 |![Alt text](./rsc/seccomp/cbpf_vs_ebpf.png)|
 |:-:|
 |11개의 64bit Register, 512개의 8bit Stack, Key-Value를 저장할 수 있는 무제한의 Map|
@@ -617,10 +626,10 @@ ebpf 프로그램은 LLVM/clang을 통해 바이트코드로 컴파일된다.
 컴파일된 ebpf 프로그램은 tc나 iproute2와 같은 ebpf 매니징 툴에 의해 커널에 적재된다.  
 (tc, iproute2는 모두 리눅스 네트워크 매니징, 모니터링 툴)
 
-tc, iproute2는 내부적으로 bpf system call을 이용해 ebpf 바이트코드를 ebpf에 적재한다.
-이 단계에서 verifier는 ebpf 바이트코드가 정상적으로 실행이 되는지(이를테면 허용되지 않은 메모리 영역을 참조하는지..)를 검사한다.  
-필요에 따라 ebpf 프로그램의 일부는 JIT Compiler를 통해 native code로 변환되어 동작한다.  
-이를 통해 ebpf 명령어를 프로세서의 기본 명령어(opcode)에 매핑할 수 있어, 커널을 다시 컴파일할 필요가 없다.
+tc, iproute2는 내부적으로 bpf system call을 이용해 ebpf 바이트코드를 ebpf에 적재  
+이 단계에서 verifier는 ebpf 바이트코드가 정상적으로 실행이 되는지(이를테면 허용되지 않은 메모리 영역을 참조하는지..)를 검사    
+필요에 따라 ebpf 프로그램의 일부는 JIT Compiler를 통해 native code로 변환되어 동작함    
+이로써 커널을 다시 컴파일할 필요없이 ebpf 명령어를 프로세서의 기본 명령어(opcode)에 매핑  
 
 bpf system call은 ebpf 프로그램을 적재할 뿐 아니라, ebpf가 작성하는 map에 App이 접근할 수 있도록 만들어준다.  
 App과 ebpf는 Map을 통해 통신한다.
@@ -653,14 +662,49 @@ eBPF 프로그램은 일시적으로 eBPF 스택에 덤프하거나 callee가 �
 >ex) bpf 프로그램이 실행되면 r1에는 프로그램의 컨텍스트(프로그램 입력 매개변수)가 저장된다.  
 >ebpf는 100만개의 명령어를 사용할 수 있으며, 또 다른 ebpf 프로그램을 호출할 수 있는데 현재 depth 32레벨까지 tail call이 가능하다. 
 
+<br>
+
 ## 3.3 eBPF Map
 Map은 커널에 상주하는 효율적인 key-value 저장소  
 Map의 데이터는 모든 eBPF 프로그램이 액세스할 수 있다.  
 eBPF 프로그램 호출 간 상태 정보 등이 저장되며, file descripter를 통해 user space에서도 접근이 가능하다.  
-따라서 Map을 통해 ebpf 프로그램과 ebpf 프로그램, 그리고 ebpf 프로그램과 user space App이 통신할 수 있다.
+따라서 Map을 통해 ebpf 프로그램과 ebpf 프로그램, 그리고 ebpf 프로그램과 user space App이 통신할 수 있다.  
 
+![Alt text](./rsc/seccomp/ebpf_map.png)
 
-## 3.4 BCC (BPF Compiler Collection) 설치
+<br>
+
+## 3.4 helper call
+eBPF 프로그램이 커널 함수를 호출하게 되면 프로그램이 특정 커널 버전에 binding되고 프로그램 호환성이 복잡해진다.  
+대신 eBPF 프로그램은 커널에서 제공하는 안정적인 API인 helper 함수를 사용한다.  
+
+![Alt text](./rsc/seccomp/ebpf_helper.png)
+
+<br>
+
+## 3.5 eBPF safety
+1. Required Privileges  
+unprivileged eBPF가 활성화되지 않으면, linux kernel에 eBPF 프로그램을 적재하려고 하는 모든 프로세스는 privileged mode(root)나 CAP_BPF와 같은 능력이 필요.  
+즉, 신뢰되지 않은 콛는 eBPF 프로그램을 적재하지 못함.  
+unprivileged eBPF가 활성화된 경우 권한없는 프로세스는 제한된 functionality set와 kernerl에 제한된 access 능력을 갖는 eBPF 프로그램을 적재할 수 있음.  
+2. Verifier  
+eBPF 프로그램이 load 될 때, verifier를 통해 검증 (실행 전)  
+무한 loop나 초기화되지 않은 변수 사용, 허용되지 않은 메모리에 액세스 하는 등의 프로그램을 검증  
+이를 통과하기 위해 eBPF 프로그램은 유한한 복잡성을 가져야하며 주어진 크기 제한을 준수해야 한다.  
+3. Hardening
+eBPF 프로그램을 보유하고 있는 커널 메모리를 보호하고 readonly로 만듬.  
+어떤 이유인든 eBPF 프로그램을 수정하려고 시도하면 커널은 이를 감지하고 고의적으로 충돌을 일으킴.  
+4. Abstract Runtime Context
+eBPF 프로그램은 임의 커널 메모리에 직접 액세스할 수 없음  
+프로그램 컨텍스트 외부에 있는 데이터에는 eBPF helper를 통해 액세스해야함  
+이는 일관된 데이터 액세스를 보장, eBPF 프로그램의 권한 부여를 통해 접근할 수 있는 집합을 적용할 수 있음  
+즉 eBPF 프로그램은 eBPF helpers를 통해 허용된 데이터에만 접근할 수 있으므로 kernel 데이터 수정에 따른 위협을 회피할 수 있음.  
+ 
+[ebpf.io - what is ebpf](https://ebpf.io/what-is-ebpf/)
+
+<br>
+
+## 3.6 BCC (BPF Compiler Collection) 설치
 BPF는 커널에 포함되어 있지만, BPF를 가지고 코드를 작성하기에는 Javascript v8 위에서 프로그래밍하는 것과 비슷하게 어렵다.  
 Javascript도 Vue나 React와 같은 프레임워크 위에서 사용하는 것과 비슷하게 BPF는 BCC, bpftrace로 작성된다.  
 
@@ -715,5 +759,63 @@ sudo python3 hello_world.py
 * bpf_trace_printk(): 공통 Trace_pipe(/sys/kernel/debug/tracing/trace_pipe)에 대한 printf()용 간단한 커널 기능.
 * .trace_print(): Trace_pipe를 읽어 출력하는 bcc routine
 
->kprobes (kernel probes)  
->커널에서 특정 event가 발생하면 probe이 동작해 해당 동작을 hooking하고 이를 처리하는 handler를 실행한다.  
+<br>
+
+### 3.6 kprobes (Kernel Probes)
+Kernel routine에 동적인 break를 삽입하여 디버그와 성능 정보를 수집한다.  
+분석하고 싶은 Kernel 코드 address에 trap을 삽입하여 breakpoint에 도달하면 handler 함수가 동작한다.  
+특정 커널 코드가 실행되는 위치(심볼, 함수)에서 여러가지 정보(Instruction address, register, stack, data..)를 확인할 수 있다.
+
+kprobes에는 두가지가 있다.  
+1. kprobes: 어떠한 커널 코드에도 삽입가능  
+2. kretprobes(return probes): 특정 함수가 리턴될 때 동작  
+
+kprobes를 위해서는 아래와 같은 kernel config 상수들이 Enable 되어있어야 한다.  
+>CONFIG_KPROBES  
+>CONFIG_MODULES  
+>CONFIG_MODULE_UNLOAD  
+>CONFIG_KALL_SYMS  
+>CONFIG_KALL_SYMS_ALL  
+>CONFIG_DEBUG_INFO  
+
+... 커널 소스 수준에서의 모듈 프로그래밍 ...
+
+
+<br>
+
+### 3.7 BCC를 통한 eBPF 프로그램 작성  
+아래는 clone system call이 호출될 때마다 hello() 함수를 호출하는 eBPF 프로그램이다.
+
+```python
+from bcc import BPF
+from bcc.utils import printb
+
+# define BPF program
+prog = """
+int hello(void *ctx) {
+    bpf_trace_printk("Hello, World!\\n");
+    return 0;
+}
+"""
+
+# load BPF program
+b = BPF(text=prog)
+b.attach_kprobe(event=b.get_syscall_fnname("clone"), fn_name="hello")
+
+# header
+print("%-18s %-16s %-6s %s" % ("TIME(s)", "COMM", "PID", "MESSAGE"))
+
+# format output
+while 1:
+    try:
+        (task, pid, cpu, flags, ts, msg) = b.trace_fields()
+    except ValueError:
+        continue
+    except KeyboardInterrupt:
+        exit()
+    printb(b"%-18.9f %-16s %-6d %s" % (ts, task, pid, msg))
+```
+
+* b.attach_kprobe(): hello()라는 함수를 syscall_clone에 매핑시킨다. 즉, clone syscall이 호출되면 hello()가 실행된다.  
+
+
