@@ -414,6 +414,7 @@ ssh 공개키를 배포한다.
 ```bash
 ssh-copy-id [계정이름]@[서버IP]
 ```
+
 ![Alt text](./rsc/kubernetes/img/ssh_authorized_keys.png)  
 
 각 서버에 authorized-keys가 생성된 것을 확인한다.  
@@ -439,6 +440,7 @@ requirements.txt는 pip로 설치할 패키지 정보가 담겨있다.
 
 pip를 통해 패키지 설치  
 ```bash
+sudo apt-get install python3-pip -y
 sudo pip install -r requirements.txt
 ```
 >pip2는 ansible 7.6.0을 지원하지 않는다.  
@@ -454,6 +456,10 @@ ansible 설치 확인
 여기서는 inventory/sample 디렉터리에 설정 기본 템플릿을 수정해서 사용한다.  
 
 기본 템플릿을 namucluster(새로 만든 디렉터리)로 복사해서 사용한다.  
+```bash
+# cp -rfp inventory/sample inventory/[mycluster]
+cp -rfp inventory/sample inventory/namucluster
+```
 ![Alt text](./rsc/kubernetes/img/create_namucluster.png)  
 
 ![Alt text](./rsc/kubernetes/img/cd_inventory_sample.png)  
@@ -476,28 +482,32 @@ k8s-net-*.yml: 클러스터 네트워크 플러그인 별 상세 설정,
 네트워크 플로그인은 k8s-cluster.yml 파일의 kube-network_plugin 변수에 설정한 내용을 적용하고, 상세 설정은 k8s-net-*.yml 파일의 설정에 따른다.
 
 ```bash
-vi inventory/[mycluster]/inventory.ini
+# vi inventory/[mycluster]/inventory.ini
+vi inventory/namucluster/inventory.ini
 ```
 ![Alt text](./rsc/kubernetes/img/modify_inventory_ini.png)  
 >kube_node: 워커 노드로 사용할 서버의 호스트네임 설정
 
 >ansible을 통해 각 노드들과의 통신을 확인한다.  
-![Alt text](./rsc/kubernetes/img/ansible_ping_cluster_fail.png)  
-현재 호스트에도 ssh 키를 부여하고 다시 확인해보면 정상적으로 연결된다.  
-![Alt text](./rsc/kubernetes/img/ansible_need_ssh_on_host.png)  
+>```bash
+>ansible all -i inventory/namucluster/inventory.ini -m ping
+>```
+>![Alt text](./rsc/kubernetes/img/ansible_ping_cluster_fail.png)  
+>현재 호스트에도 ssh 키를 부여하고 다시 확인해보면 정상적으로 연결된다.  
+>![Alt text](./rsc/kubernetes/img/ansible_need_ssh_on_host.png)  
 
 모든 노드 apt 캐시 업데이트
 ```bash
 # permission denied를 해결하기 위해 인수로 비밀번호를 넘겨준다.(--extra-vars "ansible_sudo_pass=~")
-ansible all -i inventory/mycluster/inventory.ini -m apt -a 'update_cache=yes' --become --extra-vars "ansible_sudo_pass=[password]"
+ansible all -i inventory/[mycluster]/inventory.ini -m apt -a 'update_cache=yes' --become --extra-vars "ansible_sudo_pass=[password]"
 ```
-![Alt text](./rsc/kubernetes/img/ansible_apt_update_cluster.png)  
 
+Ansible를 통해 클러스터 구성  
 ```bash
 # 쿠버네티스 클러스터를 구성한다.  
 # ansible-playbook ~ 명령으로 cluster.yml 스크립트를 실행한다.  
 # 구성시간 20분 이상 소요
-ansible-playbook -i inventory/mycluster/inventory.ini -v --become --become-user=root --extra-vars "ansible_sudo_pass=[password] cluster.yml"
+ansible-playbook -i inventory/[mycluster]/inventory.ini -v --become --become-user=root --extra-vars "ansible_sudo_pass=[password]" cluster.yml
 ```
 
 마지막으로 각 호스트네임 옆에 'failed=0'을 확인하면 정상적으로 설치되었음을 알 수 있다.  
@@ -507,5 +517,19 @@ ansible-playbook -i inventory/mycluster/inventory.ini -v --become --become-user=
 
 
 
+## 오류수정 etcd..
+쿠버네티스를 다시 설치하면서 ansible, etcd와 관련된 오류가 발생했다.  
 
+찾아보니, andible 2.14.9 등 하위 버전에서 일어나는 문제라고 한다.  
+[Upgrade Ansible to 2.15.x](https://github.com/kubernetes-sigs/kubespray/issues/10375)  
+[Change maximal_ansible_version to 2.15 ](https://github.com/kubernetes-sigs/kubespray/pull/10395)  
 
+requirements.txt에서 ansible 버전을 수정한다.  
+[ansible](https://pypi.org/project/ansible/7.7.0/)  
+ansible 7.7.0은 ansible-core 2.14.10을 사용한다.  
+
+![image](https://github.com/jang-namu/cclab-research/assets/121238128/8afc87f9-6be4-4432-a992-552bf3b81259)  
+
+그 후 pip를 통해 requriements.txt의 의존성들을 다시 설치하고 kubespray 클러스터를 재구성하면 해결된다.  
+
+![image](https://github.com/jang-namu/cclab-research/assets/121238128/d8de7346-1bc8-4ca3-86b1-9cdc241e646a)  

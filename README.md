@@ -1,93 +1,69 @@
+# 2023 학부 RA활동 - 장철희
 
-# chul hee
+이 레포지토리는 클라우드 보안 연구실(CCLAB)에서 학부 연구생으로 활동하며 학습하고 연구한 내용을 정리한 것입니다.
 
+## 목차
+### [1. Docker](./Docker.md)
+- 컨테이너 기술의 기본 개념
+- Docker 아키텍처와 내부 동작 원리
+- 컨테이너 보안 메커니즘
 
+### [2. containerd](./containerd.md)
+- 컨테이너 런타임의 이해
+- containerd 아키텍처
+- OCI 표준과의 관계
 
-## Getting started
+### [3. Kubernetes](./Kubernetes.md)
+- 컨테이너 오케스트레이션
+- 쿠버네티스 보안 구성요소
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+### [4. Seccomp & eBPF](./seccomp.md)
+- 시스템 콜 필터링
+- eBPF 기반 모니터링 및 보안
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### [+) eBPF summit](./eBPFsummit.md)
+- eBPF 기술 동향
+- 최신 활용 사례
 
-## Add your files
+## eBPF 개발 가이드
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+### 개발 프로세스
+eBPF 프로그램은 기본적으로 C 언어로 작성되며, 다음과 같은 단계로 개발됩니다:
+1. 컴파일
+2. 로드
+3. 유저 애플리케이션과 통신
 
-```
-cd existing_repo
-git remote add origin https://git.cclab-inu.com/cclab-ra/chul-hee.git
-git branch -M main
-git push -uf origin main
-```
+### 주요 개발 도구
 
-## Integrate with your tools
+#### libbpf
+- C 언어 기반 eBPF 프로그램 개발 라이브러리
+- [libbpf GitHub](https://github.com/libbpf/libbpf)
+- 초기 개발시 libbpf 레포지토리의 bootstrap 예제 참고 권장
 
-- [ ] [Set up project integrations](https://git.cclab-inu.com/cclab-ra/chul-hee/-/settings/integrations)
+#### BCC (BPF Compiler Collection)
+- Python 인터페이스를 통한 eBPF 프로그램 관리
+- [iovisor/bcc](https://github.com/iovisor/bcc/tree/master)
 
-## Collaborate with your team
+#### eunomia-bpf
+- eBPF 프로그램 개발 간소화 도구
+- [튜토리얼](https://eunomia.dev/tutorials/0-introduce/)
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+## 추가 참고자료
 
-## Test and Deploy
+### eBPF 맵 & 커널 문서
+- [Prototype Kernel/docs-eBPF Maps](https://prototype-kernel.readthedocs.io/en/latest/bpf/ebpf_maps.html)
+  - eBPF 맵 사용법에 대한 간략한 가이드
+- [Linux Kernel - bpf](https://docs.kernel.org/bpf/index.html)
+- [LSM BPF Programs](https://docs.kernel.org/bpf/prog_lsm.html)
+  - BPF의 심층적 이해를 위한 공식 커널 문서
 
-Use the built-in continuous integration in GitLab.
+### 실제 구현 사례
+- [KubeArmor-bpf](https://github.com/kubearmor/KubeArmor/tree/main/KubeArmor/BPF)
+  - 실제 프로덕션 환경의 eBPF 구현 예시
+  - 레퍼런스 코드로 활용 가능
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## 학습 로드맵
+1. 목차의 내용을 순차적으로 학습
+2. Linux Kernel BPF 문서를 통한 심화 학습
+3. 실제 프로젝트 분석 (KubeArmor 등)
+4. eBPF 프로그램 개발 실습

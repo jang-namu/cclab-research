@@ -500,7 +500,8 @@ Docker 명령은 항상 root 권한 'sudo' 필요
     * 여기서 __-d 옵션은 컨테이너를 일반 프로세스가 아닌 데몬 프로세스로, 백그라운드로 실행한다.__
     * -p 옵션은 포트를 지정하는데, 앞에 80은 호스트 컴퓨터에 포트, 뒤에 80은 컨테이너 내부에서 리스닝하고 있는 포트를 의미한다.
     * 영/숫자로 된 문자열은 컨테이너 ID로 Docker 컨테이너를 고유하게 식별한다.
-    ![NginxPage](./rsc/docker/img/NginxPage.png)
+    
+    ![NginxPage](./rsc/docker/img/NginxPage.png) 
     ![curl로 확인](./rsc/docker/img/curlNginxPage.png)
 * Nginx 서버의 상태를 확인
     ```bash
@@ -1317,6 +1318,9 @@ Dockerfile을 이용한 빌드 시에는 명령 단위로 이미지가 생성된
     * 앞에서 빌드한 'greet' 바이너리 파일을 제품환경용 Docker 이미지로 복사한다.
         * 이 때 --from 옵션으로 'builder'라는 이름의 이미지로부터 복사함을 선언한다.
     * 마지막으로 ENTRYPOINT로 바이너리를 실행하는 명령을 적는다.
+
+Ref. [Multi-stage build로 이미지 용량 최소화](https://www.hahwul.com/2020/10/07/docker-multistage-build-for-optimazation/)  
+
 ```bash
 docker build -t greet . 
 # 인자를 받아서, 인사를 출력하는 간단한 프로그램
