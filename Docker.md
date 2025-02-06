@@ -1932,6 +1932,22 @@ docker-compose.yml을 바탕으로 여러 개의 컨테이너를 생성하여 �
 server_a의 컨테이너 10개, server_b의 컨테이너 20개 시작시킴
 ex) docker-compose up --scale server_a=10 --scaler server_b=20  
 
+> scale 사용 시, ports 매핑이 하나로만 되어있다면 실패할 수 있다.(호스트 머신의 포트는 하나인데 여러 컨테이너가 매핑을 시도)
+이를 해결하기 위해서는 매핑되는 호스트 머신의 포트를 범위 지정 또는 지정하지 않거나(랜덤으로 선택됨), ports를 사용하지 않고 expose로 도커 네트워크에 노출시킨 후 nginx와 같은 프록시를 앞에 둔다.
+
+docker-compose.yml에서는 다음과 같이 사용할 수 있다.
+```yml
+services:
+  frontend:
+    image: example/webapp
+    ports:
+      - "8080:80"
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+```
+
 ![docker-compose up --scale](./rsc/docker/img/docker_compose_up_scale.png)
 ![docker-compose up --scale result](./rsc/docker/img/docker_compose_up_sacle_result.png)
 
